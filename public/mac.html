@@ -24,21 +24,27 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        min-height: 64px;
-        padding: 10px 14px;
+        min-height: 68px;
+        padding: 10px 12px;
         border-bottom: 1px solid var(--line);
-        background: rgba(12, 16, 22, 0.96);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025)),
+          rgba(8, 11, 16, 0.96);
+        box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.035);
+        backdrop-filter: blur(18px);
       }
 
       .remote-title {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 14px;
         min-width: 0;
       }
 
       .remote-title h1 {
-        font-size: 22px;
+        font-size: 24px;
+        font-weight: 900;
+        line-height: 1;
       }
 
       .remote-controls {
@@ -48,13 +54,13 @@
       }
 
       .remote-controls input {
-        width: 220px;
-        min-height: 44px;
+        width: 210px;
+        min-height: 46px;
       }
 
       .remote-controls select {
-        width: 130px;
-        min-height: 44px;
+        width: 126px;
+        min-height: 46px;
         border: 1px solid var(--line);
         border-radius: var(--radius);
         background: rgba(255, 255, 255, 0.08);
@@ -67,7 +73,7 @@
       .remote-stage {
         position: relative;
         overflow: hidden;
-        background: #020305;
+        background: #030507;
       }
 
       #screen {
@@ -77,14 +83,15 @@
 
       .remote-message {
         position: absolute;
-        inset: auto 18px 18px;
-        padding: 12px 14px;
+        inset: auto 16px 16px;
+        padding: 10px 12px;
         border: 1px solid var(--line);
         border-radius: var(--radius);
-        background: rgba(12, 16, 22, 0.88);
+        background: rgba(9, 12, 17, 0.82);
         color: var(--muted);
-        font-size: 13px;
-        font-weight: 700;
+        font-size: 12px;
+        font-weight: 800;
+        backdrop-filter: blur(12px);
       }
 
       @media (max-width: 760px) {
