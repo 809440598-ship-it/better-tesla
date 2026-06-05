@@ -110,27 +110,27 @@
     <main class="remote-shell">
       <header class="remote-bar">
         <div class="remote-title">
-          <a class="icon-button" href="/" aria-label="Back" title="Back">‹</a>
+          <a class="icon-button" href="/" aria-label="Back" title="Back" data-i18n-aria="back" data-i18n-title="back">‹</a>
           <div>
-            <p class="eyebrow">Remote Desktop</p>
+            <p class="eyebrow" data-i18n="remoteDesktop">Remote Desktop</p>
             <h1>Mac mini</h1>
           </div>
         </div>
         <div class="remote-controls">
-          <input id="password" type="password" autocomplete="off" placeholder="VNC password" />
-          <input id="username" autocomplete="username" placeholder="Username" />
-          <select id="profile" aria-label="Quality profile" title="Quality profile">
-            <option value="speed">Speed</option>
-            <option value="balanced">Balanced</option>
-            <option value="sharp">Sharp</option>
+          <input id="password" type="password" autocomplete="off" placeholder="VNC password" data-i18n-placeholder="vncPassword" />
+          <input id="username" autocomplete="username" placeholder="Username" data-i18n-placeholder="username" />
+          <select id="profile" aria-label="Quality profile" title="Quality profile" data-i18n-aria="qualityProfile" data-i18n-title="qualityProfile">
+            <option value="speed" data-i18n="speed">Speed</option>
+            <option value="balanced" data-i18n="balanced">Balanced</option>
+            <option value="sharp" data-i18n="sharp">Sharp</option>
           </select>
-          <button class="action-button" id="connect">Connect</button>
-          <button class="action-button ghost" id="status">Status</button>
+          <button class="action-button" id="connect" data-i18n="connect">Connect</button>
+          <button class="action-button ghost" id="status" data-i18n="status">Status</button>
         </div>
       </header>
       <section class="remote-stage">
         <div id="screen"></div>
-        <div class="remote-message" id="message">Start Mac Screen Sharing and tunnel, then connect.</div>
+        <div class="remote-message" id="message" data-i18n="startHint">Start Mac Screen Sharing and tunnel, then connect.</div>
       </section>
     </main>
 
@@ -148,14 +148,83 @@
       let connectTimer;
 
       const settings = JSON.parse(localStorage.getItem("betterTesla.settings") || "{}");
+      const normalizeLanguage = (value) => (value === "zh" || value === "en" ? value : null);
+      const language = normalizeLanguage(settings.language) || (navigator.language?.toLowerCase().startsWith("zh") ? "zh" : "en");
+      const copy = {
+        en: {
+          pageTitle: "Mac mini - Better Tesla",
+          back: "Back",
+          remoteDesktop: "Remote Desktop",
+          vncPassword: "VNC password",
+          username: "Username",
+          qualityProfile: "Quality profile",
+          speed: "Speed",
+          balanced: "Balanced",
+          sharp: "Sharp",
+          connect: "Connect",
+          status: "Status",
+          startHint: "Start Mac Screen Sharing and tunnel, then connect.",
+          tunnelReady: "Tunnel ready",
+          connecting: "Connecting...",
+          connected: "Connected",
+          disconnected: "Disconnected",
+          sendingCredentials: "Sending VNC credentials",
+          withUsername: " with username",
+          passwordRequired: "VNC password required",
+          authFailed: "VNC authentication failed",
+          stillWaiting: "Still waiting for macOS Screen Sharing. Check username/password or VNC access setting."
+        },
+        zh: {
+          pageTitle: "Mac mini - Better Tesla",
+          back: "返回",
+          remoteDesktop: "远程桌面",
+          vncPassword: "VNC 密码",
+          username: "用户名",
+          qualityProfile: "画质模式",
+          speed: "速度",
+          balanced: "均衡",
+          sharp: "清晰",
+          connect: "连接",
+          status: "状态",
+          startHint: "开启 Mac 屏幕共享和隧道后再连接。",
+          tunnelReady: "隧道就绪",
+          connecting: "连接中...",
+          connected: "已连接",
+          disconnected: "已断开",
+          sendingCredentials: "正在发送 VNC 凭据",
+          withUsername: "（含用户名）",
+          passwordRequired: "需要 VNC 密码",
+          authFailed: "VNC 认证失败",
+          stillWaiting: "仍在等待 macOS 屏幕共享，请检查用户名/密码或 VNC 访问设置。"
+        }
+      };
+      const t = (key) => copy[language]?.[key] || copy.en[key] || key;
+      const applyLanguage = () => {
+        document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+        document.title = t("pageTitle");
+        document.querySelectorAll("[data-i18n]").forEach((node) => {
+          node.textContent = t(node.dataset.i18n);
+        });
+        document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+          node.placeholder = t(node.dataset.i18nPlaceholder);
+        });
+        document.querySelectorAll("[data-i18n-aria]").forEach((node) => {
+          node.setAttribute("aria-label", t(node.dataset.i18nAria));
+        });
+        document.querySelectorAll("[data-i18n-title]").forEach((node) => {
+          node.title = t(node.dataset.i18nTitle);
+        });
+      };
+      applyLanguage();
+
       password.value = settings.vncPassword || localStorage.getItem("betterTesla.vncPassword") || "";
       username.value = settings.macUsername || localStorage.getItem("betterTesla.macUsername") || "";
       profile.value = localStorage.getItem("betterTesla.macProfile") || "speed";
 
       const profiles = {
-        speed: { qualityLevel: 2, compressionLevel: 9, label: "Speed" },
-        balanced: { qualityLevel: 5, compressionLevel: 7, label: "Balanced" },
-        sharp: { qualityLevel: 8, compressionLevel: 4, label: "Sharp" }
+        speed: { qualityLevel: 2, compressionLevel: 9, labelKey: "speed" },
+        balanced: { qualityLevel: 5, compressionLevel: 7, labelKey: "balanced" },
+        sharp: { qualityLevel: 8, compressionLevel: 4, labelKey: "sharp" }
       };
 
       const setMessage = (text) => {
@@ -166,7 +235,7 @@
         try {
           const res = await fetch("/api/mac/status");
           const payload = await res.json();
-          setMessage(payload.ok ? `Tunnel ready: ${payload.target}` : `${payload.hint}: ${payload.error}`);
+          setMessage(payload.ok ? `${t("tunnelReady")}: ${payload.target}` : `${payload.hint}: ${payload.error}`);
         } catch (error) {
           setMessage(error.message);
         }
@@ -191,11 +260,11 @@
         rfb.showDotCursor = true;
         rfb.addEventListener("connect", () => {
           clearTimeout(connectTimer);
-          setMessage(`Connected (${profiles[profile.value].label})`);
+          setMessage(`${t("connected")} (${t(profiles[profile.value].labelKey)})`);
         });
         rfb.addEventListener("disconnect", () => {
           clearTimeout(connectTimer);
-          setMessage("Disconnected");
+          setMessage(t("disconnected"));
         });
         rfb.addEventListener("credentialsrequired", () => {
           const currentPassword = password.value || localStorage.getItem("betterTesla.vncPassword") || "";
@@ -204,18 +273,18 @@
             const nextCredentials = { password: currentPassword };
             if (currentUsername) nextCredentials.username = currentUsername;
             rfb.sendCredentials(nextCredentials);
-            setMessage(`Sending VNC credentials${currentUsername ? " with username" : ""}...`);
+            setMessage(`${t("sendingCredentials")}${currentUsername ? t("withUsername") : ""}...`);
             return;
           }
-          setMessage("VNC password required");
+          setMessage(t("passwordRequired"));
         });
         rfb.addEventListener("securityfailure", (event) => {
           clearTimeout(connectTimer);
-          setMessage(`VNC authentication failed${event.detail?.reason ? `: ${event.detail.reason}` : ""}`);
+          setMessage(`${t("authFailed")}${event.detail?.reason ? `: ${event.detail.reason}` : ""}`);
         });
-        setMessage("Connecting...");
+        setMessage(t("connecting"));
         connectTimer = setTimeout(() => {
-          setMessage("Still waiting for macOS Screen Sharing. Check username/password or VNC access setting.");
+          setMessage(t("stillWaiting"));
         }, 9000);
       };
 

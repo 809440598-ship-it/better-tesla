@@ -10,16 +10,16 @@
   </head>
   <body>
     <main class="shell">
-      <section class="topbar" aria-label="Status">
+      <section class="topbar" aria-label="Status" data-i18n-aria="status">
         <div>
-          <p class="eyebrow">Drive Console</p>
+          <p class="eyebrow" data-i18n="driveConsole">Drive Console</p>
           <h1>Better Tesla</h1>
         </div>
         <div class="top-actions">
-          <button class="icon-button" id="refreshButton" aria-label="Refresh status" title="Refresh status">
+          <button class="icon-button" id="refreshButton" aria-label="Refresh status" title="Refresh status" data-i18n-aria="refreshStatus" data-i18n-title="refreshStatus">
             <span aria-hidden="true">↻</span>
           </button>
-          <button class="icon-button" id="settingsButton" aria-label="Settings" title="Settings">
+          <button class="icon-button" id="settingsButton" aria-label="Settings" title="Settings" data-i18n-aria="settings" data-i18n-title="settings">
             <span aria-hidden="true">⚙</span>
           </button>
           <time id="clock">--:--</time>
@@ -27,33 +27,33 @@
       </section>
 
       <section class="dashboard">
-        <div class="service-grid" id="serviceGrid" aria-label="Services"></div>
+        <div class="service-grid" id="serviceGrid" aria-label="Services" data-i18n-aria="services"></div>
 
-        <aside class="side-panel" aria-label="Server">
+        <aside class="side-panel" aria-label="Server" data-i18n-aria="server">
           <div class="status-head">
             <div>
-              <p class="eyebrow">JP Backend</p>
-              <h2 id="serverState">Checking</h2>
+              <p class="eyebrow" data-i18n="jpBackend">JP Backend</p>
+              <h2 id="serverState" data-i18n="checking">Checking</h2>
             </div>
             <span class="pulse" id="serverPulse"></span>
           </div>
           <dl class="metric-list">
             <div>
-              <dt>Uptime</dt>
+              <dt data-i18n="uptime">Uptime</dt>
               <dd id="uptime">--</dd>
             </div>
             <div>
-              <dt>Services</dt>
+              <dt data-i18n="serviceCount">Services</dt>
               <dd id="serviceCount">--</dd>
             </div>
             <div>
-              <dt>Build</dt>
+              <dt data-i18n="build">Build</dt>
               <dd id="buildId">--</dd>
             </div>
           </dl>
           <div class="quick-row">
-            <button class="action-button" id="healthButton">Health</button>
-            <button class="action-button ghost" id="adminButton">System</button>
+            <button class="action-button" id="healthButton" data-i18n="health">Health</button>
+            <button class="action-button ghost" id="adminButton" data-i18n="system">System</button>
           </div>
           <pre class="status-output" id="statusOutput">{}</pre>
         </aside>
@@ -63,36 +63,43 @@
     <dialog class="modal" id="settingsModal">
       <form method="dialog" class="modal-body">
         <div class="modal-head">
-          <h2>Settings</h2>
-          <button class="icon-button" value="close" aria-label="Close" title="Close">×</button>
+          <h2 data-i18n="settings">Settings</h2>
+          <button class="icon-button" value="close" aria-label="Close" title="Close" data-i18n-aria="close" data-i18n-title="close">×</button>
         </div>
         <label>
-          Mac mini URL
+          <span data-i18n="language">Language</span>
+          <select id="languageSelect">
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+        <label>
+          <span data-i18n="macMiniUrl">Mac mini URL</span>
           <input id="macUrl" inputmode="url" autocomplete="off" placeholder="https://mac.example.com" />
         </label>
         <label>
-          Mac VNC Password
-          <input id="vncPassword" type="password" autocomplete="off" placeholder="Local browser only" />
+          <span data-i18n="macVncPassword">Mac VNC Password</span>
+          <input id="vncPassword" type="password" autocomplete="off" placeholder="Local browser only" data-i18n-placeholder="localBrowserOnly" />
         </label>
         <label>
-          Mac Username
-          <input id="macUsername" autocomplete="username" placeholder="Optional" />
+          <span data-i18n="macUsername">Mac Username</span>
+          <input id="macUsername" autocomplete="username" placeholder="Optional" data-i18n-placeholder="optional" />
         </label>
         <label>
-          Codex URL
+          <span data-i18n="codexUrl">Codex URL</span>
           <input id="codexUrl" inputmode="url" autocomplete="off" placeholder="https://codex.example.com" />
         </label>
         <label>
-          Home URL
+          <span data-i18n="homeUrl">Home URL</span>
           <input id="homeUrl" inputmode="url" autocomplete="off" placeholder="https://home.example.com" />
         </label>
         <label>
-          Admin Token
-          <input id="adminToken" autocomplete="off" placeholder="Optional" />
+          <span data-i18n="adminToken">Admin Token</span>
+          <input id="adminToken" autocomplete="off" placeholder="Optional" data-i18n-placeholder="optional" />
         </label>
         <menu>
-          <button class="action-button ghost" value="cancel">Cancel</button>
-          <button class="action-button" id="saveSettings" value="default">Save</button>
+          <button class="action-button ghost" value="cancel" data-i18n="cancel">Cancel</button>
+          <button class="action-button" id="saveSettings" value="default" data-i18n="save">Save</button>
         </menu>
       </form>
     </dialog>
