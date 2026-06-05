@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#080b0f" />
+    <title>Better Tesla</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar" aria-label="Status">
+        <div>
+          <p class="eyebrow">Drive Console</p>
+          <h1>Better Tesla</h1>
+        </div>
+        <div class="top-actions">
+          <button class="icon-button" id="refreshButton" aria-label="Refresh status" title="Refresh status">
+            <span aria-hidden="true">↻</span>
+          </button>
+          <button class="icon-button" id="settingsButton" aria-label="Settings" title="Settings">
+            <span aria-hidden="true">⚙</span>
+          </button>
+          <time id="clock">--:--</time>
+        </div>
+      </section>
+
+      <section class="dashboard">
+        <div class="service-grid" id="serviceGrid" aria-label="Services"></div>
+
+        <aside class="side-panel" aria-label="Server">
+          <div class="status-head">
+            <div>
+              <p class="eyebrow">JP Backend</p>
+              <h2 id="serverState">Checking</h2>
+            </div>
+            <span class="pulse" id="serverPulse"></span>
+          </div>
+          <dl class="metric-list">
+            <div>
+              <dt>Uptime</dt>
+              <dd id="uptime">--</dd>
+            </div>
+            <div>
+              <dt>Services</dt>
+              <dd id="serviceCount">--</dd>
+            </div>
+            <div>
+              <dt>Build</dt>
+              <dd id="buildId">--</dd>
+            </div>
+          </dl>
+          <div class="quick-row">
+            <button class="action-button" id="healthButton">Health</button>
+            <button class="action-button ghost" id="adminButton">System</button>
+          </div>
+          <pre class="status-output" id="statusOutput">{}</pre>
+        </aside>
+      </section>
+    </main>
+
+    <dialog class="modal" id="settingsModal">
+      <form method="dialog" class="modal-body">
+        <div class="modal-head">
+          <h2>Settings</h2>
+          <button class="icon-button" value="close" aria-label="Close" title="Close">×</button>
+        </div>
+        <label>
+          Mac mini URL
+          <input id="macUrl" inputmode="url" autocomplete="off" placeholder="https://mac.example.com" />
+        </label>
+        <label>
+          Codex URL
+          <input id="codexUrl" inputmode="url" autocomplete="off" placeholder="https://codex.example.com" />
+        </label>
+        <label>
+          Home URL
+          <input id="homeUrl" inputmode="url" autocomplete="off" placeholder="https://home.example.com" />
+        </label>
+        <label>
+          Admin Token
+          <input id="adminToken" autocomplete="off" placeholder="Optional" />
+        </label>
+        <menu>
+          <button class="action-button ghost" value="cancel">Cancel</button>
+          <button class="action-button" id="saveSettings" value="default">Save</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

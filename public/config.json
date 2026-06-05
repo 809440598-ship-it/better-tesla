@@ -1,0 +1,52 @@
+{
+  "services": [
+    {
+      "id": "mac",
+      "title": "Mac mini",
+      "subtitle": "Remote desktop",
+      "url": "",
+      "accent": "teal",
+      "icon": "monitor"
+    },
+    {
+      "id": "codex",
+      "title": "Codex JP",
+      "subtitle": "Remote workspace",
+      "url": "",
+      "accent": "blue",
+      "icon": "terminal"
+    },
+    {
+      "id": "home",
+      "title": "Home",
+      "subtitle": "Assistant panel",
+      "url": "",
+      "accent": "green",
+      "icon": "home"
+    },
+    {
+      "id": "media",
+      "title": "Media",
+      "subtitle": "Drive queue",
+      "url": "",
+      "accent": "amber",
+      "icon": "play"
+    },
+    {
+      "id": "camera",
+      "title": "Camera",
+      "subtitle": "Live view",
+      "url": "",
+      "accent": "rose",
+      "icon": "camera"
+    },
+    {
+      "id": "logs",
+      "title": "Logs",
+      "subtitle": "Service status",
+      "url": "/api/health",
+      "accent": "violet",
+      "icon": "activity"
+    }
+  ]
+}

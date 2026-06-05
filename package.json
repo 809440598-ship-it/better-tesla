@@ -1,0 +1,14 @@
+{
+  "name": "better-tesla",
+  "version": "0.1.0",
+  "description": "A self-hosted Tesla browser dashboard for remote services, Mac mini access, and future Fleet API integrations.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "deploy": "bash scripts/deploy.sh"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
