@@ -131,6 +131,28 @@ x-admin-token: your-token
 - 更漂亮的车机 UI 主题
 - 真实车机使用反馈
 
+## Mac mini Remote
+
+V1.1 内置 noVNC 页面：
+
+```text
+/mac.html
+```
+
+连接链路：
+
+```text
+Tesla Browser -> Better Tesla /mac.html -> /mac/ws -> JP Server localhost:5901 -> SSH reverse tunnel -> Mac mini localhost:5900
+```
+
+Mac mini 上需要先打开系统屏幕共享，并允许 VNC 访问。然后在 Mac mini 上启动反向隧道：
+
+```bash
+SERVER_HOST=root@example.com ./scripts/mac-mini-tunnel.sh
+```
+
+网页里输入你的 VNC password，点击 `Connect`。
+
 ## 设计原则
 
 - 不破解 Tesla

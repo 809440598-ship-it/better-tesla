@@ -11,7 +11,8 @@ rsync -az --delete \
   --exclude 'node_modules' \
   ./ "$HOST:$APP_DIR/"
 
-ssh "$HOST" "cat >/etc/systemd/system/$SERVICE.service <<'UNIT'
+ssh "$HOST" "cd '$APP_DIR' && npm install --omit=dev
+cat >/etc/systemd/system/$SERVICE.service <<'UNIT'
 [Unit]
 Description=Better Tesla web app
 After=network.target

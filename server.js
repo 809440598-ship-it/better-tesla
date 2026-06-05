@@ -2,13 +2,18 @@ import { createHash } from "node:crypto";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { createServer } from "node:http";
+import { connect } from "node:net";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
+import { WebSocketServer } from "ws";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const publicDir = join(root, "public");
+const vendorDir = join(root, "node_modules", "@novnc", "novnc");
 const port = Number(process.env.PORT || 8080);
 const adminToken = process.env.ADMIN_TOKEN || "";
+const macVncHost = process.env.MAC_VNC_HOST || "127.0.0.1";
+const macVncPort = Number(process.env.MAC_VNC_PORT || 5901);
 const startedAt = new Date();
 
 const mime = {
@@ -41,6 +46,19 @@ const readServices = async () => {
   const config = JSON.parse(await readFile(join(publicDir, "config.json"), "utf8"));
   return config.services || [];
 };
+
+const checkTcp = (host, targetPort, timeout = 1200) =>
+  new Promise((resolve) => {
+    const socket = connect({ host, port: targetPort });
+    const done = (ok, error) => {
+      socket.destroy();
+      resolve({ ok, error });
+    };
+    socket.setTimeout(timeout);
+    socket.once("connect", () => done(true));
+    socket.once("timeout", () => done(false, "timeout"));
+    socket.once("error", (error) => done(false, error.code || error.message));
+  });
 
 const directoryDigest = async (dir) => {
   const hash = createHash("sha1");
@@ -84,23 +102,36 @@ const handleApi = async (req, res) => {
     });
   }
 
+  if (req.url === "/api/mac/status") {
+    const status = await checkTcp(macVncHost, macVncPort);
+    return json(res, status.ok ? 200 : 503, {
+      ok: status.ok,
+      target: `${macVncHost}:${macVncPort}`,
+      hint: status.ok ? "ready" : "start Mac screen sharing and reverse tunnel",
+      error: status.error
+    });
+  }
+
   return json(res, 404, { ok: false, error: "not_found" });
 };
 
 const serveFile = (req, res) => {
   const url = new URL(req.url || "/", "http://localhost");
   const requested = url.pathname === "/" ? "/index.html" : url.pathname;
-  const safePath = normalize(decodeURIComponent(requested)).replace(/^(\.\.[/\\])+/, "");
-  const filePath = join(publicDir, safePath);
+  const isVendor = requested.startsWith("/vendor/novnc/");
+  const baseDir = isVendor ? vendorDir : publicDir;
+  const relativePath = isVendor ? requested.replace("/vendor/novnc/", "/") : requested;
+  const safePath = normalize(decodeURIComponent(relativePath)).replace(/^(\.\.[/\\])+/, "");
+  const filePath = join(baseDir, safePath);
 
-  if (!filePath.startsWith(publicDir) || !existsSync(filePath) || statSync(filePath).isDirectory()) {
+  if (!filePath.startsWith(baseDir) || !existsSync(filePath) || statSync(filePath).isDirectory()) {
     res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
     res.end("Not found");
     return;
   }
 
   const type = mime[extname(filePath)] || "application/octet-stream";
-  const immutable = /\.(png|svg|ico)$/.test(filePath);
+  const immutable = /\.(png|svg|ico)$/.test(filePath) || isVendor;
   res.writeHead(200, {
     "content-type": type,
     "cache-control": immutable ? "public, max-age=31536000, immutable" : "no-cache"
@@ -108,12 +139,40 @@ const serveFile = (req, res) => {
   createReadStream(filePath).pipe(res);
 };
 
-createServer((req, res) => {
+const server = createServer((req, res) => {
   if (req.url?.startsWith("/api/")) {
     handleApi(req, res).catch((error) => json(res, 500, { ok: false, error: error.message }));
     return;
   }
   serveFile(req, res);
-}).listen(port, "0.0.0.0", () => {
+});
+
+const wss = new WebSocketServer({ noServer: true });
+
+wss.on("connection", (ws) => {
+  const tcp = connect({ host: macVncHost, port: macVncPort });
+
+  tcp.on("data", (data) => {
+    if (ws.readyState === ws.OPEN) ws.send(data);
+  });
+  tcp.on("error", () => ws.close(1011, "VNC target unavailable"));
+  tcp.on("close", () => ws.close());
+
+  ws.on("message", (message) => {
+    if (!tcp.destroyed) tcp.write(Buffer.from(message));
+  });
+  ws.on("close", () => tcp.destroy());
+  ws.on("error", () => tcp.destroy());
+});
+
+server.on("upgrade", (req, socket, head) => {
+  if (new URL(req.url || "/", "http://localhost").pathname !== "/mac/ws") {
+    socket.destroy();
+    return;
+  }
+  wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
+});
+
+server.listen(port, "0.0.0.0", () => {
   console.log(`Better Tesla listening on ${port}`);
 });

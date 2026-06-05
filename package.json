@@ -8,6 +8,10 @@
     "start": "node server.js",
     "deploy": "bash scripts/deploy.sh"
   },
+  "dependencies": {
+    "@novnc/novnc": "^1.6.0",
+    "ws": "^8.18.3"
+  },
   "engines": {
     "node": ">=20"
   }

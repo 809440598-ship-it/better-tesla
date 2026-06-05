@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#080b0f" />
+    <title>Mac mini - Better Tesla</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      body {
+        background: #080b0f;
+      }
+
+      .remote-shell {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .remote-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 64px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(12, 16, 22, 0.96);
+      }
+
+      .remote-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .remote-title h1 {
+        font-size: 22px;
+      }
+
+      .remote-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .remote-controls input {
+        width: 220px;
+        min-height: 44px;
+      }
+
+      .remote-stage {
+        position: relative;
+        overflow: hidden;
+        background: #020305;
+      }
+
+      #screen {
+        width: 100%;
+        height: 100%;
+      }
+
+      .remote-message {
+        position: absolute;
+        inset: auto 18px 18px;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(12, 16, 22, 0.88);
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      @media (max-width: 760px) {
+        .remote-bar {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .remote-controls,
+        .remote-controls input,
+        .remote-controls button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="remote-shell">
+      <header class="remote-bar">
+        <div class="remote-title">
+          <a class="icon-button" href="/" aria-label="Back" title="Back">‹</a>
+          <div>
+            <p class="eyebrow">Remote Desktop</p>
+            <h1>Mac mini</h1>
+          </div>
+        </div>
+        <div class="remote-controls">
+          <input id="password" type="password" autocomplete="off" placeholder="VNC password" />
+          <button class="action-button" id="connect">Connect</button>
+          <button class="action-button ghost" id="status">Status</button>
+        </div>
+      </header>
+      <section class="remote-stage">
+        <div id="screen"></div>
+        <div class="remote-message" id="message">Start Mac Screen Sharing and tunnel, then connect.</div>
+      </section>
+    </main>
+
+    <script type="module">
+      import RFB from "/vendor/novnc/core/rfb.js";
+
+      const screen = document.querySelector("#screen");
+      const message = document.querySelector("#message");
+      const password = document.querySelector("#password");
+      const connect = document.querySelector("#connect");
+      const status = document.querySelector("#status");
+      let rfb;
+
+      password.value = localStorage.getItem("betterTesla.vncPassword") || "";
+
+      const setMessage = (text) => {
+        message.textContent = text;
+      };
+
+      const checkStatus = async () => {
+        try {
+          const res = await fetch("/api/mac/status");
+          const payload = await res.json();
+          setMessage(payload.ok ? `Tunnel ready: ${payload.target}` : `${payload.hint}: ${payload.error}`);
+        } catch (error) {
+          setMessage(error.message);
+        }
+      };
+
+      const connectMac = () => {
+        localStorage.setItem("betterTesla.vncPassword", password.value);
+        if (rfb) rfb.disconnect();
+        const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+        rfb = new RFB(screen, `${protocol}//${location.host}/mac/ws`, {
+          credentials: { password: password.value }
+        });
+        rfb.scaleViewport = true;
+        rfb.resizeSession = false;
+        rfb.clipViewport = false;
+        rfb.addEventListener("connect", () => setMessage("Connected"));
+        rfb.addEventListener("disconnect", () => setMessage("Disconnected"));
+        rfb.addEventListener("credentialsrequired", () => setMessage("VNC password required"));
+        rfb.addEventListener("securityfailure", () => setMessage("VNC authentication failed"));
+        setMessage("Connecting...");
+      };
+
+      connect.addEventListener("click", connectMac);
+      status.addEventListener("click", checkStatus);
+      checkStatus();
+    </script>
+  </body>
+</html>
