@@ -121,7 +121,14 @@ const serveFile = (req, res) => {
   const isVendor = requested.startsWith("/vendor/novnc/");
   const baseDir = isVendor ? vendorDir : publicDir;
   const relativePath = isVendor ? requested.replace("/vendor/novnc/", "/") : requested;
-  const safePath = normalize(decodeURIComponent(relativePath)).replace(/^(\.\.[/\\])+/, "");
+  let safePath;
+  try {
+    safePath = normalize(decodeURIComponent(relativePath)).replace(/^(\.\.[/\\])+/, "");
+  } catch {
+    res.writeHead(400, { "content-type": "text/plain; charset=utf-8" });
+    res.end("Bad request");
+    return;
+  }
   const filePath = join(baseDir, safePath);
 
   if (!filePath.startsWith(baseDir) || !existsSync(filePath) || statSync(filePath).isDirectory()) {
