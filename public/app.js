@@ -107,6 +107,7 @@ const tickClock = () => {
 
 const openSettings = () => {
   $("#macUrl").value = saved.macUrl || "";
+  $("#vncPassword").value = saved.vncPassword || localStorage.getItem("betterTesla.vncPassword") || "";
   $("#codexUrl").value = saved.codexUrl || "";
   $("#homeUrl").value = saved.homeUrl || "";
   $("#adminToken").value = saved.adminToken || "";
@@ -116,10 +117,12 @@ const openSettings = () => {
 const saveSettings = () => {
   Object.assign(saved, {
     macUrl: $("#macUrl").value.trim(),
+    vncPassword: $("#vncPassword").value.trim(),
     codexUrl: $("#codexUrl").value.trim(),
     homeUrl: $("#homeUrl").value.trim(),
     adminToken: $("#adminToken").value.trim()
   });
+  if (saved.vncPassword) localStorage.setItem("betterTesla.vncPassword", saved.vncPassword);
   localStorage.setItem("betterTesla.settings", JSON.stringify(saved));
   services = applyOverrides(services);
   renderServices();

@@ -121,7 +121,8 @@
       const status = document.querySelector("#status");
       let rfb;
 
-      password.value = localStorage.getItem("betterTesla.vncPassword") || "";
+      const settings = JSON.parse(localStorage.getItem("betterTesla.settings") || "{}");
+      password.value = settings.vncPassword || localStorage.getItem("betterTesla.vncPassword") || "";
 
       const setMessage = (text) => {
         message.textContent = text;
@@ -149,7 +150,15 @@
         rfb.clipViewport = false;
         rfb.addEventListener("connect", () => setMessage("Connected"));
         rfb.addEventListener("disconnect", () => setMessage("Disconnected"));
-        rfb.addEventListener("credentialsrequired", () => setMessage("VNC password required"));
+        rfb.addEventListener("credentialsrequired", () => {
+          const currentPassword = password.value || localStorage.getItem("betterTesla.vncPassword") || "";
+          if (currentPassword) {
+            rfb.sendCredentials({ password: currentPassword });
+            setMessage("Sending VNC password...");
+            return;
+          }
+          setMessage("VNC password required");
+        });
         rfb.addEventListener("securityfailure", () => setMessage("VNC authentication failed"));
         setMessage("Connecting...");
       };
