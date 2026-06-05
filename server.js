@@ -159,6 +159,8 @@ const wss = new WebSocketServer({ noServer: true });
 
 wss.on("connection", (ws) => {
   const tcp = connect({ host: macVncHost, port: macVncPort });
+  tcp.setNoDelay(true);
+  if (ws._socket) ws._socket.setNoDelay(true);
   let vncPhase = "banner";
 
   const sendToBrowser = (data) => {

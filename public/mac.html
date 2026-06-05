@@ -52,6 +52,18 @@
         min-height: 44px;
       }
 
+      .remote-controls select {
+        width: 130px;
+        min-height: 44px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        padding: 0 12px;
+        font: inherit;
+        font-weight: 800;
+      }
+
       .remote-stage {
         position: relative;
         overflow: hidden;
@@ -83,6 +95,7 @@
 
         .remote-controls,
         .remote-controls input,
+        .remote-controls select,
         .remote-controls button {
           width: 100%;
         }
@@ -102,6 +115,11 @@
         <div class="remote-controls">
           <input id="password" type="password" autocomplete="off" placeholder="VNC password" />
           <input id="username" autocomplete="username" placeholder="Username" />
+          <select id="profile" aria-label="Quality profile" title="Quality profile">
+            <option value="speed">Speed</option>
+            <option value="balanced">Balanced</option>
+            <option value="sharp">Sharp</option>
+          </select>
           <button class="action-button" id="connect">Connect</button>
           <button class="action-button ghost" id="status">Status</button>
         </div>
@@ -119,6 +137,7 @@
       const message = document.querySelector("#message");
       const password = document.querySelector("#password");
       const username = document.querySelector("#username");
+      const profile = document.querySelector("#profile");
       const connect = document.querySelector("#connect");
       const status = document.querySelector("#status");
       let rfb;
@@ -127,6 +146,13 @@
       const settings = JSON.parse(localStorage.getItem("betterTesla.settings") || "{}");
       password.value = settings.vncPassword || localStorage.getItem("betterTesla.vncPassword") || "";
       username.value = settings.macUsername || localStorage.getItem("betterTesla.macUsername") || "";
+      profile.value = localStorage.getItem("betterTesla.macProfile") || "speed";
+
+      const profiles = {
+        speed: { qualityLevel: 2, compressionLevel: 9, label: "Speed" },
+        balanced: { qualityLevel: 5, compressionLevel: 7, label: "Balanced" },
+        sharp: { qualityLevel: 8, compressionLevel: 4, label: "Sharp" }
+      };
 
       const setMessage = (text) => {
         message.textContent = text;
@@ -145,6 +171,7 @@
       const connectMac = () => {
         localStorage.setItem("betterTesla.vncPassword", password.value);
         localStorage.setItem("betterTesla.macUsername", username.value);
+        localStorage.setItem("betterTesla.macProfile", profile.value);
         if (rfb) rfb.disconnect();
         const protocol = location.protocol === "https:" ? "wss:" : "ws:";
         const credentials = { password: password.value };
@@ -153,11 +180,14 @@
           credentials
         });
         rfb.scaleViewport = true;
+        rfb.qualityLevel = profiles[profile.value].qualityLevel;
+        rfb.compressionLevel = profiles[profile.value].compressionLevel;
         rfb.resizeSession = false;
-        rfb.clipViewport = false;
+        rfb.clipViewport = true;
+        rfb.showDotCursor = true;
         rfb.addEventListener("connect", () => {
           clearTimeout(connectTimer);
-          setMessage("Connected");
+          setMessage(`Connected (${profiles[profile.value].label})`);
         });
         rfb.addEventListener("disconnect", () => {
           clearTimeout(connectTimer);

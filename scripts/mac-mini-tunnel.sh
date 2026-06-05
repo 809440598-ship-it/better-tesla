@@ -7,7 +7,10 @@ LOCAL_PORT="${LOCAL_PORT:-5900}"
 
 exec ssh \
   -N \
+  -C \
   -o ExitOnForwardFailure=yes \
+  -o Compression=yes \
+  -o TCPKeepAlive=yes \
   -o ServerAliveInterval=30 \
   -o ServerAliveCountMax=3 \
   -R "127.0.0.1:${REMOTE_PORT}:127.0.0.1:${LOCAL_PORT}" \
