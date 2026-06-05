@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-HOST="${HOST:-root@8.216.58.163}"
+HOST="${HOST:-root@example.com}"
 APP_DIR="${APP_DIR:-/opt/better-tesla}"
 SERVICE="${SERVICE:-better-tesla}"
 

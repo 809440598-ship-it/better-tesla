@@ -60,7 +60,7 @@ http://127.0.0.1:8080
 默认部署到：
 
 ```text
-root@8.216.58.163:/opt/better-tesla
+root@example.com:/opt/better-tesla
 ```
 
 可通过环境变量改目标：
