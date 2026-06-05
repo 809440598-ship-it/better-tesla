@@ -101,6 +101,7 @@
         </div>
         <div class="remote-controls">
           <input id="password" type="password" autocomplete="off" placeholder="VNC password" />
+          <input id="username" autocomplete="username" placeholder="Username" />
           <button class="action-button" id="connect">Connect</button>
           <button class="action-button ghost" id="status">Status</button>
         </div>
@@ -117,12 +118,15 @@
       const screen = document.querySelector("#screen");
       const message = document.querySelector("#message");
       const password = document.querySelector("#password");
+      const username = document.querySelector("#username");
       const connect = document.querySelector("#connect");
       const status = document.querySelector("#status");
       let rfb;
+      let connectTimer;
 
       const settings = JSON.parse(localStorage.getItem("betterTesla.settings") || "{}");
       password.value = settings.vncPassword || localStorage.getItem("betterTesla.vncPassword") || "";
+      username.value = settings.macUsername || localStorage.getItem("betterTesla.macUsername") || "";
 
       const setMessage = (text) => {
         message.textContent = text;
@@ -140,27 +144,45 @@
 
       const connectMac = () => {
         localStorage.setItem("betterTesla.vncPassword", password.value);
+        localStorage.setItem("betterTesla.macUsername", username.value);
         if (rfb) rfb.disconnect();
         const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+        const credentials = { password: password.value };
+        if (username.value) credentials.username = username.value;
         rfb = new RFB(screen, `${protocol}//${location.host}/mac/ws`, {
-          credentials: { password: password.value }
+          credentials
         });
         rfb.scaleViewport = true;
         rfb.resizeSession = false;
         rfb.clipViewport = false;
-        rfb.addEventListener("connect", () => setMessage("Connected"));
-        rfb.addEventListener("disconnect", () => setMessage("Disconnected"));
+        rfb.addEventListener("connect", () => {
+          clearTimeout(connectTimer);
+          setMessage("Connected");
+        });
+        rfb.addEventListener("disconnect", () => {
+          clearTimeout(connectTimer);
+          setMessage("Disconnected");
+        });
         rfb.addEventListener("credentialsrequired", () => {
           const currentPassword = password.value || localStorage.getItem("betterTesla.vncPassword") || "";
+          const currentUsername = username.value || localStorage.getItem("betterTesla.macUsername") || "";
           if (currentPassword) {
-            rfb.sendCredentials({ password: currentPassword });
-            setMessage("Sending VNC password...");
+            const nextCredentials = { password: currentPassword };
+            if (currentUsername) nextCredentials.username = currentUsername;
+            rfb.sendCredentials(nextCredentials);
+            setMessage(`Sending VNC credentials${currentUsername ? " with username" : ""}...`);
             return;
           }
           setMessage("VNC password required");
         });
-        rfb.addEventListener("securityfailure", () => setMessage("VNC authentication failed"));
+        rfb.addEventListener("securityfailure", (event) => {
+          clearTimeout(connectTimer);
+          setMessage(`VNC authentication failed${event.detail?.reason ? `: ${event.detail.reason}` : ""}`);
+        });
         setMessage("Connecting...");
+        connectTimer = setTimeout(() => {
+          setMessage("Still waiting for macOS Screen Sharing. Check username/password or VNC access setting.");
+        }, 9000);
       };
 
       connect.addEventListener("click", connectMac);
