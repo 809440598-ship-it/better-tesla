@@ -14,6 +14,7 @@ const port = Number(process.env.PORT || 8080);
 const adminToken = process.env.ADMIN_TOKEN || "";
 const macVncHost = process.env.MAC_VNC_HOST || "127.0.0.1";
 const macVncPort = Number(process.env.MAC_VNC_PORT || 5901);
+const forceMacVncAuth = process.env.MAC_FORCE_VNC_AUTH !== "0";
 const startedAt = new Date();
 
 const mime = {
@@ -158,9 +159,41 @@ const wss = new WebSocketServer({ noServer: true });
 
 wss.on("connection", (ws) => {
   const tcp = connect({ host: macVncHost, port: macVncPort });
+  let vncPhase = "banner";
+
+  const sendToBrowser = (data) => {
+    if (ws.readyState === ws.OPEN) ws.send(data);
+  };
+
+  const handleVncServerData = (data) => {
+    if (!forceMacVncAuth) {
+      sendToBrowser(data);
+      return;
+    }
+
+    if (vncPhase === "banner" && data.length >= 12 && data.subarray(0, 4).toString() === "RFB ") {
+      sendToBrowser(Buffer.from("RFB 003.008\n"));
+      vncPhase = "security";
+      if (data.length > 12) handleVncServerData(data.subarray(12));
+      return;
+    }
+
+    if (vncPhase === "security" && data.length >= 2) {
+      const count = data[0];
+      const types = [...data.subarray(1, 1 + count)];
+      if (count > 0 && data.length >= 1 + count && types.includes(2)) {
+        sendToBrowser(Buffer.from([1, 2]));
+        vncPhase = "passthrough";
+        if (data.length > 1 + count) sendToBrowser(data.subarray(1 + count));
+        return;
+      }
+    }
+
+    sendToBrowser(data);
+  };
 
   tcp.on("data", (data) => {
-    if (ws.readyState === ws.OPEN) ws.send(data);
+    handleVncServerData(data);
   });
   tcp.on("error", () => ws.close(1011, "VNC target unavailable"));
   tcp.on("close", () => ws.close());
