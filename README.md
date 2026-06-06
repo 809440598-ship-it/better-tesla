@@ -10,6 +10,7 @@ V1 是一个可部署、可扩展的车机首页：
 
 - Tesla 横屏大按钮 UI
 - Mac mini / Codex / Home / Media / Camera / Logs 快捷入口
+- Tesla 私有数据看板 V1：Overview / Battery / Charging / Drives
 - 车机内设置入口 URL
 - JP 后端健康检查
 - 服务器系统状态接口
@@ -76,7 +77,9 @@ HOST=root@example.com APP_DIR=/opt/better-tesla ./scripts/deploy.sh
 ├── server.js              # Node.js 静态服务和 API
 ├── public/
 │   ├── index.html         # 车机首页
+│   ├── data.html          # Tesla 私有数据看板
 │   ├── app.js             # 前端交互
+│   ├── data.js            # 数据看板交互
 │   ├── styles.css         # Tesla 横屏 UI
 │   ├── config.json        # 默认快捷入口
 │   ├── sw.js              # PWA 缓存
@@ -105,6 +108,32 @@ GET /api/admin/system
 x-admin-token: your-token
 ```
 
+Tesla 数据看板：
+
+```http
+GET /api/tesla/dashboard
+```
+
+当前返回 fixture 数据，用于验证页面结构。后续可以替换为 TeslaMate Postgres、Tesla Fleet API 或 Fleet Telemetry adapter。
+
+## Tesla Data Dashboard
+
+Better Tesla 的车辆数据方向不是频繁控制车辆，而是长期记录、估算和趋势分析。
+
+V1 页面：
+
+- `Overview`：SOC、续航、今日能耗、休眠状态
+- `Battery`：健康度估算、可用容量、Projected Range 趋势
+- `Charging`：AC/DC 占比、费用、效率、SOC-功率曲线
+- `Drives`：行程、路线、Wh/km、温度影响
+
+设计原则：
+
+- 不保存 Tesla 账号密码
+- 优先 OAuth / TeslaMate 数据源
+- 少唤醒、多缓存、重趋势
+- 电池健康度只作为估算值展示置信度，不包装成官方数值
+
 ## Roadmap
 
 - HTTPS / 域名部署
@@ -113,8 +142,10 @@ x-admin-token: your-token
 - 摄像头面板
 - 服务日志面板
 - 移动端配置页
-- Tesla Fleet API 状态读取
-- 车辆充电 / 空调 / 位置模块
+- Tesla Fleet API OAuth
+- TeslaMate Postgres adapter
+- TimescaleDB 长期时序存储
+- Fleet Telemetry 流式采集
 - 插件化快捷卡片
 - 多用户配置
 

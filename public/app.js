@@ -4,6 +4,7 @@ const iconMap = {
   monitor: "▣",
   terminal: "⌁",
   home: "⌂",
+  chart: "▤",
   play: "▶",
   camera: "◉",
   activity: "↯"
@@ -82,7 +83,7 @@ const serviceCopy = {
   en: {
     mac: ["Mac mini", "Remote desktop"],
     codex: ["Codex JP", "Remote workspace"],
-    home: ["Home", "Assistant panel"],
+    home: ["Tesla Data", "Private analytics"],
     media: ["Media", "Drive queue"],
     camera: ["Camera", "Live view"],
     logs: ["Logs", "Service status"]
@@ -90,7 +91,7 @@ const serviceCopy = {
   zh: {
     mac: ["Mac mini", "远程桌面"],
     codex: ["Codex JP", "远程工作区"],
-    home: ["Home", "助手面板"],
+    home: ["Tesla 数据", "私有趋势看板"],
     media: ["媒体", "驾驶队列"],
     camera: ["摄像头", "实时画面"],
     logs: ["日志", "服务状态"]

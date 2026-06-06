@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#eef3f7" />
+    <title>Tesla Data - Better Tesla</title>
+    <link rel="stylesheet" href="/styles.css?v=data-1" />
+  </head>
+  <body>
+    <main class="shell data-shell">
+      <section class="topbar data-topbar" aria-label="Tesla data dashboard">
+        <div class="data-title-row">
+          <a class="icon-button" href="/" aria-label="Back" title="Back" data-i18n-aria="back" data-i18n-title="back">‹</a>
+          <div>
+            <p class="eyebrow" data-i18n="privateData">Private Data</p>
+            <h1 data-i18n="title">Tesla Data</h1>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button class="icon-button" id="refreshButton" aria-label="Refresh" title="Refresh" data-i18n-aria="refresh" data-i18n-title="refresh">
+            <span aria-hidden="true">↻</span>
+          </button>
+          <time id="updatedAt">--</time>
+        </div>
+      </section>
+
+      <nav class="data-tabs" aria-label="Sections">
+        <button class="tab-button is-active" data-view="overview" data-i18n="overview">Overview</button>
+        <button class="tab-button" data-view="battery" data-i18n="battery">Battery</button>
+        <button class="tab-button" data-view="charging" data-i18n="charging">Charging</button>
+        <button class="tab-button" data-view="drives" data-i18n="drives">Drives</button>
+      </nav>
+
+      <section class="metric-cards" id="metricCards" aria-label="Key metrics"></section>
+
+      <section class="data-view is-active" data-page="overview">
+        <div class="data-grid">
+          <article class="data-panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow" data-i18n="vehicle">Vehicle</p>
+                <h2 id="vehicleName">--</h2>
+              </div>
+              <span class="status-pill" id="vehicleState">--</span>
+            </div>
+            <dl class="compact-list" id="vehicleFacts"></dl>
+          </article>
+          <article class="data-panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow" data-i18n="energy">Energy</p>
+                <h2 data-i18n="today">Today</h2>
+              </div>
+            </div>
+            <div class="big-number" id="todayEnergy">--</div>
+            <p class="muted-line" id="todayMeta">--</p>
+          </article>
+          <article class="data-panel wide">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow" data-i18n="sleepQuality">Sleep Quality</p>
+                <h2 data-i18n="vampireDrain">Vampire drain</h2>
+              </div>
+            </div>
+            <div id="sleepChart" class="chart-box"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="data-view" data-page="battery">
+        <div class="data-grid">
+          <article class="data-panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow" data-i18n="estimate">Estimate</p>
+                <h2 data-i18n="batteryHealth">Battery health</h2>
+              </div>
+            </div>
+            <div class="big-number" id="batteryHealth">--</div>
+            <p class="muted-line" id="batteryConfidence">--</p>
+          </article>
+          <article class="data-panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow" data-i18n="usableCapacity">Usable Capacity</p>
+                <h2 id="usableKwh">--</h2>
+              </div>
+            </div>
+            <div id="capacityChart" class="chart-box small"></div>
+          </article>
+          <article class="data-panel wide">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow" data-i18n="projectedRange">Projected Range</p>
+                <h2 data-i18n="rangeTrend">Range trend</h2>
+              </div>
+            </div>
+            <div id="rangeChart" class="chart-box"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="data-view" data-page="charging">
+        <div class="data-grid">
+          <article class="data-panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow" data-i18n="mix">Mix</p>
+                <h2 data-i18n="chargingHealth">Charging health</h2>
+              </div>
+            </div>
+            <dl class="compact-list" id="chargingFacts"></dl>
+          </article>
+          <article class="data-panel wide">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow" data-i18n="powerCurve">Power Curve</p>
+                <h2 data-i18n="socPower">SOC to power</h2>
+              </div>
+            </div>
+            <div id="chargeCurve" class="chart-box"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="data-view" data-page="drives">
+        <div class="data-grid">
+          <article class="data-panel wide">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow" data-i18n="efficiency">Efficiency</p>
+                <h2 data-i18n="weeklyWhKm">Weekly Wh/km</h2>
+              </div>
+            </div>
+            <div id="driveChart" class="chart-box"></div>
+          </article>
+          <article class="data-panel wide">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow" data-i18n="recentTrips">Recent Trips</p>
+                <h2 data-i18n="routeCompare">Route compare</h2>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th data-i18n="route">Route</th>
+                    <th data-i18n="distance">Distance</th>
+                    <th data-i18n="consumption">Consumption</th>
+                    <th data-i18n="temperature">Temp</th>
+                  </tr>
+                </thead>
+                <tbody id="tripRows"></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script src="/data.js" type="module"></script>
+  </body>
+</html>

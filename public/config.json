@@ -18,11 +18,11 @@
     },
     {
       "id": "home",
-      "title": "Home",
-      "subtitle": "Assistant panel",
-      "url": "",
+      "title": "Tesla Data",
+      "subtitle": "Private analytics",
+      "url": "/data.html",
       "accent": "green",
-      "icon": "home"
+      "icon": "chart"
     },
     {
       "id": "media",

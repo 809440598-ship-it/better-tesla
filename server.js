@@ -17,6 +17,96 @@ const macVncPort = Number(process.env.MAC_VNC_PORT || 5901);
 const forceMacVncAuth = process.env.MAC_FORCE_VNC_AUTH !== "0";
 const startedAt = new Date();
 
+const teslaDashboard = {
+  ok: true,
+  source: "fixture",
+  updatedAt: "2026-06-06T07:40:00.000Z",
+  vehicle: {
+    name: "Model Y",
+    state: "asleep",
+    soc: 68,
+    rangeKm: 318,
+    odometerKm: 28642,
+    location: "Home"
+  },
+  overview: {
+    todayDistanceKm: 42.6,
+    todayEnergyKwh: 6.9,
+    avgWhKm: 162,
+    alerts: 1,
+    lastSleepMinutes: 18
+  },
+  battery: {
+    healthPercent: 92.4,
+    usableKwh: 70.8,
+    confidence: 74,
+    projectedRangeKm: [
+      { label: "Jan", value: 529 },
+      { label: "Feb", value: 526 },
+      { label: "Mar", value: 524 },
+      { label: "Apr", value: 521 },
+      { label: "May", value: 520 },
+      { label: "Jun", value: 518 }
+    ],
+    capacityKwh: [
+      { label: "Jan", value: 72.1 },
+      { label: "Feb", value: 71.8 },
+      { label: "Mar", value: 71.5 },
+      { label: "Apr", value: 71.1 },
+      { label: "May", value: 70.9 },
+      { label: "Jun", value: 70.8 }
+    ]
+  },
+  charging: {
+    sessions: 18,
+    acPercent: 72,
+    dcPercent: 28,
+    cost: 86.4,
+    efficiencyPercent: 91,
+    curve: [
+      { label: "10%", value: 148 },
+      { label: "20%", value: 142 },
+      { label: "30%", value: 129 },
+      { label: "40%", value: 105 },
+      { label: "50%", value: 82 },
+      { label: "60%", value: 61 },
+      { label: "70%", value: 43 },
+      { label: "80%", value: 28 }
+    ]
+  },
+  drives: {
+    trips: [
+      { route: "Home -> Office", distanceKm: 21.4, whKm: 158, tempC: 28 },
+      { route: "Office -> Home", distanceKm: 21.2, whKm: 166, tempC: 31 },
+      { route: "Airport Loop", distanceKm: 64.8, whKm: 174, tempC: 30 },
+      { route: "Downtown", distanceKm: 13.6, whKm: 149, tempC: 27 }
+    ],
+    weeklyWhKm: [
+      { label: "Mon", value: 159 },
+      { label: "Tue", value: 166 },
+      { label: "Wed", value: 161 },
+      { label: "Thu", value: 171 },
+      { label: "Fri", value: 162 },
+      { label: "Sat", value: 154 },
+      { label: "Sun", value: 168 }
+    ]
+  },
+  sleep: {
+    nightlyDrainPercent: 1.2,
+    wakeCount: 3,
+    sleepLatencyMinutes: 18,
+    sessions: [
+      { label: "Mon", value: 0.8 },
+      { label: "Tue", value: 1.1 },
+      { label: "Wed", value: 1.7 },
+      { label: "Thu", value: 0.9 },
+      { label: "Fri", value: 1.2 },
+      { label: "Sat", value: 1.4 },
+      { label: "Sun", value: 1.0 }
+    ]
+  }
+};
+
 const mime = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -110,6 +200,13 @@ const handleApi = async (req, res) => {
       target: `${macVncHost}:${macVncPort}`,
       hint: status.ok ? "ready" : "start Mac screen sharing and reverse tunnel",
       error: status.error
+    });
+  }
+
+  if (req.url === "/api/tesla/dashboard") {
+    return json(res, 200, {
+      ...teslaDashboard,
+      updatedAt: new Date().toISOString()
     });
   }
 
