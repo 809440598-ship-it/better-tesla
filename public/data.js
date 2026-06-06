@@ -65,6 +65,9 @@ const copy = {
     efficiencyRate: "Efficiency",
     sessions: "Sessions",
     sourceFixture: "Fixture data",
+    sourceFleet: "Fleet API",
+    pendingData: "Waiting for history",
+    unavailable: "Unavailable",
     updated: "Updated"
   },
   zh: {
@@ -126,6 +129,9 @@ const copy = {
     efficiencyRate: "效率",
     sessions: "次数",
     sourceFixture: "示例数据",
+    sourceFleet: "Fleet API",
+    pendingData: "等待历史采集",
+    unavailable: "暂无数据",
     updated: "更新"
   }
 };
@@ -156,6 +162,12 @@ const number = (value, digits = 0) => new Intl.NumberFormat(language === "zh" ? 
   maximumFractionDigits: digits
 }).format(value);
 
+const hasNumber = (value) => Number.isFinite(Number(value));
+const displayNumber = (value, digits = 0) => hasNumber(value) ? number(value, digits) : "--";
+const displayPercent = (value, digits = 0) => hasNumber(value) ? `${number(value, digits)}%` : "--";
+const displayMetric = (value, suffix, digits = 0) => hasNumber(value) ? `${number(value, digits)} ${suffix}` : "--";
+const dataSourceLabel = (source) => source === "fleet_api" ? t("sourceFleet") : t("sourceFixture");
+
 const metricCard = (label, value, meta) => `
   <article class="metric-card">
     <span>${label}</span>
@@ -172,16 +184,19 @@ const fact = (label, value) => `
 `;
 
 const lineChart = (points, suffix = "") => {
+  if (!points.some((point) => hasNumber(point.value))) {
+    return `<div class="empty-chart">${t("pendingData")}</div>`;
+  }
   const width = 640;
   const height = 220;
   const pad = 28;
-  const values = points.map((point) => point.value);
+  const values = points.map((point) => Number(point.value)).filter(Number.isFinite);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const spread = max - min || 1;
   const coords = points.map((point, index) => {
     const x = pad + (index / Math.max(points.length - 1, 1)) * (width - pad * 2);
-    const y = height - pad - ((point.value - min) / spread) * (height - pad * 2);
+    const y = height - pad - ((Number(point.value) - min) / spread) * (height - pad * 2);
     return { ...point, x, y };
   });
   const path = coords.map((point) => `${point.x},${point.y}`).join(" ");
@@ -200,15 +215,18 @@ const lineChart = (points, suffix = "") => {
 };
 
 const barChart = (points, suffix = "") => {
+  if (!points.some((point) => hasNumber(point.value))) {
+    return `<div class="empty-chart">${t("pendingData")}</div>`;
+  }
   const width = 640;
   const height = 220;
   const pad = 28;
-  const max = Math.max(...points.map((point) => point.value)) || 1;
+  const max = Math.max(...points.map((point) => Number(point.value)).filter(Number.isFinite)) || 1;
   const slot = (width - pad * 2) / points.length;
   const bars = points.map((point, index) => {
     const barWidth = slot * 0.58;
     const x = pad + index * slot + (slot - barWidth) / 2;
-    const barHeight = (point.value / max) * (height - pad * 2);
+    const barHeight = (Number(point.value) / max) * (height - pad * 2);
     const y = height - pad - barHeight;
     return `
       <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="5" />
@@ -226,49 +244,53 @@ const render = (data) => {
   })}`;
 
   $("#metricCards").innerHTML = [
-    metricCard(t("soc"), `${data.vehicle.soc}%`, `${t("range")} ${number(data.vehicle.rangeKm)} ${unit.km}`),
-    metricCard(t("todayDistance"), `${number(data.overview.todayDistanceKm, 1)} ${unit.km}`, `${number(data.overview.avgWhKm)} ${unit.whKm}`),
-    metricCard(t("batteryHealth"), `${number(data.battery.healthPercent, 1)}%`, `${t("confidence")} ${data.battery.confidence}%`),
-    metricCard(t("sleepQuality"), `${number(data.sleep.nightlyDrainPercent, 1)}%`, `${data.sleep.wakeCount} wake`)
+    metricCard(t("soc"), displayPercent(data.vehicle.soc), `${t("range")} ${displayMetric(data.vehicle.rangeKm, unit.km)}`),
+    metricCard(t("todayDistance"), displayMetric(data.overview.todayDistanceKm, unit.km, 1), `${displayNumber(data.overview.avgWhKm)} ${unit.whKm}`),
+    metricCard(t("batteryHealth"), displayPercent(data.battery.healthPercent, 1), hasNumber(data.battery.confidence) ? `${t("confidence")} ${data.battery.confidence}%` : t("pendingData")),
+    metricCard(t("sleepQuality"), displayPercent(data.sleep.nightlyDrainPercent, 1), hasNumber(data.sleep.wakeCount) ? `${data.sleep.wakeCount} wake` : t("pendingData"))
   ].join("");
 
   $("#vehicleName").textContent = data.vehicle.name;
   $("#vehicleState").textContent = data.vehicle.state;
   $("#vehicleFacts").innerHTML = [
-    fact(t("soc"), `${data.vehicle.soc}%`),
-    fact(t("range"), `${number(data.vehicle.rangeKm)} ${unit.km}`),
-    fact(t("odometer"), `${number(data.vehicle.odometerKm)} ${unit.km}`),
-    fact(t("location"), data.vehicle.location)
+    fact(t("soc"), displayPercent(data.vehicle.soc)),
+    fact(t("range"), displayMetric(data.vehicle.rangeKm, unit.km)),
+    fact(t("odometer"), displayMetric(data.vehicle.odometerKm, unit.km)),
+    fact(t("location"), data.vehicle.location || "--"),
+    fact("Source", dataSourceLabel(data.source))
   ].join("");
 
-  $("#todayEnergy").textContent = `${number(data.overview.todayEnergyKwh, 1)} ${unit.kwh}`;
-  $("#todayMeta").textContent = `${number(data.overview.todayDistanceKm, 1)} ${unit.km} · ${number(data.overview.avgWhKm)} ${unit.whKm} · ${data.overview.alerts} ${t("alerts")}`;
+  $("#todayEnergy").textContent = displayMetric(data.overview.todayEnergyKwh, unit.kwh, 1);
+  $("#todayMeta").textContent = hasNumber(data.overview.todayDistanceKm)
+    ? `${number(data.overview.todayDistanceKm, 1)} ${unit.km} · ${number(data.overview.avgWhKm)} ${unit.whKm} · ${data.overview.alerts} ${t("alerts")}`
+    : t("pendingData");
   $("#sleepChart").innerHTML = barChart(data.sleep.sessions, "%");
 
-  $("#batteryHealth").textContent = `${number(data.battery.healthPercent, 1)}%`;
-  $("#batteryConfidence").textContent = `${t("confidence")} ${data.battery.confidence}% · ${t("sourceFixture")}`;
-  $("#usableKwh").textContent = `${number(data.battery.usableKwh, 1)} ${unit.kwh}`;
+  $("#batteryHealth").textContent = displayPercent(data.battery.healthPercent, 1);
+  $("#batteryConfidence").textContent = hasNumber(data.battery.confidence) ? `${t("confidence")} ${data.battery.confidence}% · ${dataSourceLabel(data.source)}` : t("pendingData");
+  $("#usableKwh").textContent = displayMetric(data.battery.usableKwh, unit.kwh, 1);
   $("#capacityChart").innerHTML = lineChart(data.battery.capacityKwh, "");
   $("#rangeChart").innerHTML = lineChart(data.battery.projectedRangeKm, unit.km);
 
   $("#chargingFacts").innerHTML = [
-    fact(t("sessions"), data.charging.sessions),
-    fact(t("acCharging"), `${data.charging.acPercent}%`),
-    fact(t("dcCharging"), `${data.charging.dcPercent}%`),
-    fact(t("efficiencyRate"), `${data.charging.efficiencyPercent}%`),
-    fact(t("cost"), `${unit.c} ${number(data.charging.cost, 1)}`)
+    fact(t("sessions"), displayNumber(data.charging.sessions)),
+    fact(t("acCharging"), displayPercent(data.charging.acPercent)),
+    fact(t("dcCharging"), displayPercent(data.charging.dcPercent)),
+    fact(t("efficiencyRate"), displayPercent(data.charging.efficiencyPercent)),
+    fact(t("cost"), hasNumber(data.charging.cost) ? `${unit.c} ${number(data.charging.cost, 1)}` : "--")
   ].join("");
   $("#chargeCurve").innerHTML = barChart(data.charging.curve, unit.kw);
 
   $("#driveChart").innerHTML = lineChart(data.drives.weeklyWhKm, "");
-  $("#tripRows").innerHTML = data.drives.trips.map((trip) => `
+  $("#tripRows").innerHTML = data.drives.trips.length ? data.drives.trips.map((trip) => `
     <tr>
       <td>${trip.route}</td>
       <td>${number(trip.distanceKm, 1)} ${unit.km}</td>
       <td>${number(trip.whKm)} ${unit.whKm}</td>
       <td>${number(trip.tempC)}°</td>
     </tr>
-  `).join("");
+  `).join("") : `<tr><td colspan="4">${t("pendingData")}</td></tr>`;
+  if (data.vehicles) renderVehicles(data.vehicles);
 };
 
 const renderVehicles = (vehicles = []) => {

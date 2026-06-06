@@ -118,6 +118,46 @@ const teslaDashboard = {
   }
 };
 
+const milesToKm = (value) => Number.isFinite(Number(value)) ? Number((Number(value) * 1.609344).toFixed(1)) : null;
+const numberOrNull = (value) => Number.isFinite(Number(value)) ? Number(value) : null;
+
+const emptySeries = (labels) => labels.map((label) => ({ label, value: null }));
+
+const pendingDashboard = {
+  overview: {
+    todayDistanceKm: null,
+    todayEnergyKwh: null,
+    avgWhKm: null,
+    alerts: null,
+    lastSleepMinutes: null
+  },
+  battery: {
+    healthPercent: null,
+    usableKwh: null,
+    confidence: null,
+    projectedRangeKm: emptySeries(["Jan", "Feb", "Mar", "Apr", "May", "Jun"]),
+    capacityKwh: emptySeries(["Jan", "Feb", "Mar", "Apr", "May", "Jun"])
+  },
+  charging: {
+    sessions: null,
+    acPercent: null,
+    dcPercent: null,
+    cost: null,
+    efficiencyPercent: null,
+    curve: emptySeries(["10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%"])
+  },
+  drives: {
+    trips: [],
+    weeklyWhKm: emptySeries(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
+  },
+  sleep: {
+    nightlyDrainPercent: null,
+    wakeCount: null,
+    sleepLatencyMinutes: null,
+    sessions: emptySeries(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
+  }
+};
+
 const mime = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -236,6 +276,51 @@ const teslaFetch = async (session, path) => {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error_description || payload.error || `tesla_api_${response.status}`);
   return payload;
+};
+
+const fetchTeslaVehicles = async (session) => {
+  const payload = await teslaFetch(session, "/api/1/vehicles");
+  return payload.response || [];
+};
+
+const fetchTeslaVehicleData = async (session, vehicle) => {
+  if (vehicle.state !== "online") return null;
+  const vehicleId = vehicle.id_s || vehicle.id;
+  if (!vehicleId) return null;
+  const payload = await teslaFetch(session, `/api/1/vehicles/${encodeURIComponent(vehicleId)}/vehicle_data`);
+  return payload.response || null;
+};
+
+const buildLiveTeslaDashboard = async (session) => {
+  const vehicles = await fetchTeslaVehicles(session);
+  const vehicle = vehicles[0] || null;
+  const live = vehicle ? await fetchTeslaVehicleData(session, vehicle).catch((error) => ({ error: error.message })) : null;
+  const charge = live?.charge_state || {};
+  const state = live?.vehicle_state || {};
+  const drive = live?.drive_state || {};
+  const vehicleConfig = live?.vehicle_config || {};
+  const displayName = vehicle?.display_name || state.vehicle_name || vehicle?.vin || vehicle?.id_s || "Tesla";
+  const stateText = live?.state || vehicle?.state || "unknown";
+
+  return {
+    ok: true,
+    source: "fleet_api",
+    partial: Boolean(!live || live.error),
+    updatedAt: new Date().toISOString(),
+    vehicles,
+    liveError: live?.error || null,
+    vehicle: {
+      name: displayName,
+      state: stateText,
+      soc: numberOrNull(charge.battery_level),
+      rangeKm: milesToKm(charge.battery_range ?? charge.est_battery_range ?? charge.ideal_battery_range),
+      odometerKm: milesToKm(state.odometer),
+      location: drive.latitude && drive.longitude ? `${Number(drive.latitude).toFixed(4)}, ${Number(drive.longitude).toFixed(4)}` : "--",
+      model: vehicleConfig.car_type || null,
+      vin: vehicle?.vin || null
+    },
+    ...pendingDashboard
+  };
 };
 
 const isAuthed = (req) => {
@@ -391,11 +476,15 @@ const handleApi = async (req, res) => {
   if (url.pathname === "/api/tesla/vehicles") {
     const session = getSession(req);
     if (!session) return json(res, 401, { ok: false, error: "not_authenticated" });
-    const payload = await teslaFetch(session, "/api/1/vehicles");
-    return json(res, 200, { ok: true, response: payload.response || [] });
+    const vehicles = await fetchTeslaVehicles(session);
+    return json(res, 200, { ok: true, response: vehicles });
   }
 
   if (url.pathname === "/api/tesla/dashboard") {
+    const session = getSession(req);
+    if (session) {
+      return json(res, 200, await buildLiveTeslaDashboard(session));
+    }
     return json(res, 200, {
       ...teslaDashboard,
       updatedAt: new Date().toISOString()
