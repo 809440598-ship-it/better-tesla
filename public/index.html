@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#080b0f" />
+    <meta name="theme-color" content="#eef3f7" />
     <title>Better Tesla</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="stylesheet" href="/styles.css?v=clean-1" />
@@ -26,36 +26,58 @@
         </div>
       </section>
 
-      <section class="dashboard">
-        <div class="service-grid" id="serviceGrid" aria-label="Services" data-i18n-aria="services"></div>
+      <section class="home-layout">
+        <article class="hero-card liquid-card">
+          <div class="status-head hero-head">
+            <div>
+              <p class="eyebrow" data-i18n="teslaAccount">Tesla Account</p>
+              <h2 id="authTitle" data-i18n="checking">Checking</h2>
+              <p class="muted-line" id="authMeta">--</p>
+            </div>
+            <div class="hero-actions">
+              <button class="action-button" id="loginButton" data-i18n="connectTesla">Connect Tesla</button>
+              <button class="action-button ghost" id="logoutButton" data-i18n="logout">Logout</button>
+              <a class="action-button ghost text-link" href="/data.html" data-i18n="details">Details</a>
+            </div>
+          </div>
 
-        <aside class="side-panel" aria-label="Server" data-i18n-aria="server">
+          <div class="vehicle-hero">
+            <div>
+              <p class="eyebrow" data-i18n="vehicle">Vehicle</p>
+              <h2 id="vehicleName">--</h2>
+            </div>
+            <span class="status-pill" id="vehicleState">--</span>
+          </div>
+
+          <div class="home-metrics" aria-label="Tesla metrics">
+            <article>
+              <span data-i18n="soc">SOC</span>
+              <strong id="socValue">--</strong>
+              <small id="rangeValue">--</small>
+            </article>
+            <article>
+              <span data-i18n="odometer">Odometer</span>
+              <strong id="odometerValue">--</strong>
+              <small id="locationValue">--</small>
+            </article>
+            <article>
+              <span data-i18n="dataSource">Data Source</span>
+              <strong id="sourceValue">--</strong>
+              <small id="updatedAt">--</small>
+            </article>
+          </div>
+        </article>
+
+        <aside class="quick-panel liquid-card">
           <div class="status-head">
             <div>
-              <p class="eyebrow" data-i18n="jpBackend">JP Backend</p>
-              <h2 id="serverState" data-i18n="checking">Checking</h2>
+              <p class="eyebrow" data-i18n="quickAccess">Quick Access</p>
+              <h2 data-i18n="services">Services</h2>
             </div>
             <span class="pulse" id="serverPulse"></span>
           </div>
-          <dl class="metric-list">
-            <div>
-              <dt data-i18n="uptime">Uptime</dt>
-              <dd id="uptime">--</dd>
-            </div>
-            <div>
-              <dt data-i18n="serviceCount">Services</dt>
-              <dd id="serviceCount">--</dd>
-            </div>
-            <div>
-              <dt data-i18n="build">Build</dt>
-              <dd id="buildId">--</dd>
-            </div>
-          </dl>
-          <div class="quick-row">
-            <button class="action-button" id="healthButton" data-i18n="health">Health</button>
-            <button class="action-button ghost" id="adminButton" data-i18n="system">System</button>
-          </div>
-          <pre class="status-output" id="statusOutput">{}</pre>
+          <div class="service-grid compact" id="serviceGrid" aria-label="Services" data-i18n-aria="services"></div>
+          <p class="muted-line" id="serverState">--</p>
         </aside>
       </section>
     </main>
@@ -88,14 +110,6 @@
         <label>
           <span data-i18n="codexUrl">Codex URL</span>
           <input id="codexUrl" inputmode="url" autocomplete="off" placeholder="https://codex.example.com" />
-        </label>
-        <label>
-          <span data-i18n="homeUrl">Home URL</span>
-          <input id="homeUrl" inputmode="url" autocomplete="off" placeholder="https://home.example.com" />
-        </label>
-        <label>
-          <span data-i18n="adminToken">Admin Token</span>
-          <input id="adminToken" autocomplete="off" placeholder="Optional" data-i18n-placeholder="optional" />
         </label>
         <menu>
           <button class="action-button ghost" value="cancel" data-i18n="cancel">Cancel</button>

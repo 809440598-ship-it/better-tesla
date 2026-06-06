@@ -23,30 +23,6 @@
       "url": "/data.html",
       "accent": "green",
       "icon": "chart"
-    },
-    {
-      "id": "media",
-      "title": "Media",
-      "subtitle": "Drive queue",
-      "url": "",
-      "accent": "amber",
-      "icon": "play"
-    },
-    {
-      "id": "camera",
-      "title": "Camera",
-      "subtitle": "Live view",
-      "url": "",
-      "accent": "rose",
-      "icon": "camera"
-    },
-    {
-      "id": "logs",
-      "title": "Logs",
-      "subtitle": "Service status",
-      "url": "/api/health",
-      "accent": "violet",
-      "icon": "activity"
     }
   ]
 }
