@@ -1,29 +1,15 @@
-const CACHE = "better-tesla-v1";
-const ASSETS = [
-  "/",
-  "/index.html",
-  "/styles.css",
-  "/app.js",
-  "/config.json",
-  "/manifest.webmanifest",
-  "/assets/cockpit-bg.png",
-  "/assets/icon-192.png",
-  "/assets/icon-512.png"
-];
+const CACHE = "better-tesla-disabled-v1";
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
+  self.skipWaiting();
+  event.waitUntil(caches.delete(CACHE));
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
+    caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith("better-tesla")).map((key) => caches.delete(key))))
   );
+  self.clients.claim();
 });
 
-self.addEventListener("fetch", (event) => {
-  const request = event.request;
-  if (request.method !== "GET") return;
-  if (new URL(request.url).pathname.startsWith("/api/")) return;
-  event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
-});
+self.addEventListener("fetch", () => {});
