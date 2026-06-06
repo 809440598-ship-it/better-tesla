@@ -346,6 +346,7 @@ const handleApi = async (req, res) => {
     authorizeUrl.searchParams.set("response_type", "code");
     authorizeUrl.searchParams.set("scope", teslaScopes);
     authorizeUrl.searchParams.set("state", state);
+    authorizeUrl.searchParams.set("audience", teslaAudience);
     res.writeHead(302, { location: authorizeUrl.toString(), "cache-control": "no-store" });
     res.end();
     return;
