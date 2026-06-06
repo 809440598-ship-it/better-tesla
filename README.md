@@ -116,6 +116,27 @@ GET /api/tesla/dashboard
 
 当前返回 fixture 数据，用于验证页面结构。后续可以替换为 TeslaMate Postgres、Tesla Fleet API 或 Fleet Telemetry adapter。
 
+Tesla OAuth：
+
+```http
+GET /api/tesla/auth/login
+GET /api/tesla/auth/status
+GET /api/tesla/vehicles
+GET /api/tesla/auth/logout
+```
+
+服务器环境变量放在 `/etc/better-tesla.env`，不要提交到 Git：
+
+```bash
+TESLA_CLIENT_ID=your-client-id
+TESLA_CLIENT_SECRET=your-client-secret
+TESLA_REDIRECT_URI=https://your-domain/api/tesla/auth/callback
+TESLA_SCOPES=openid offline_access vehicle_device_data
+SESSION_SECRET=replace-with-long-random-string
+```
+
+OAuth 登录只跳转 Tesla 官方授权页，不收集用户 Tesla 密码。当前车辆列表接口只读，不做车辆唤醒和控制。
+
 ## Tesla Data Dashboard
 
 Better Tesla 的车辆数据方向不是频繁控制车辆，而是长期记录、估算和趋势分析。

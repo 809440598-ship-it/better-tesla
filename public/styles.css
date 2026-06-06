@@ -457,6 +457,24 @@ select:focus {
   margin-bottom: 18px;
 }
 
+.auth-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-solid);
+  box-shadow: 0 18px 46px rgba(15, 23, 42, 0.07);
+}
+
+.auth-actions {
+  display: flex;
+  gap: 10px;
+}
+
 .metric-card,
 .data-panel {
   border: 1px solid var(--line);
@@ -549,6 +567,43 @@ select:focus {
   border-bottom: 1px solid var(--line);
 }
 
+.vehicle-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.vehicle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #f8fafc;
+}
+
+.vehicle-item strong,
+.vehicle-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vehicle-item strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.vehicle-item span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
 .big-number {
   margin-top: 32px;
   color: var(--text);
@@ -639,9 +694,16 @@ td {
 }
 
 @media (max-width: 620px) {
+  .auth-panel,
   .metric-cards,
   .data-grid {
     grid-template-columns: 1fr;
+  }
+
+  .auth-panel,
+  .auth-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .data-title-row {

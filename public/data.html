@@ -32,6 +32,18 @@
         <button class="tab-button" data-view="drives" data-i18n="drives">Drives</button>
       </nav>
 
+      <section class="auth-panel" id="authPanel">
+        <div>
+          <p class="eyebrow" data-i18n="teslaAccount">Tesla Account</p>
+          <h2 id="authTitle" data-i18n="checkingAuth">Checking authorization</h2>
+          <p class="muted-line" id="authMeta">--</p>
+        </div>
+        <div class="auth-actions">
+          <button class="action-button" id="loginButton" data-i18n="connectTesla">Connect Tesla</button>
+          <button class="action-button ghost" id="logoutButton" data-i18n="logout">Logout</button>
+        </div>
+      </section>
+
       <section class="metric-cards" id="metricCards" aria-label="Key metrics"></section>
 
       <section class="data-view is-active" data-page="overview">
@@ -45,6 +57,7 @@
               <span class="status-pill" id="vehicleState">--</span>
             </div>
             <dl class="compact-list" id="vehicleFacts"></dl>
+            <div class="vehicle-list" id="vehicleList"></div>
           </article>
           <article class="data-panel">
             <div class="panel-head">

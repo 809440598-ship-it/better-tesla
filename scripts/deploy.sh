@@ -22,6 +22,7 @@ Type=simple
 WorkingDirectory=$APP_DIR
 Environment=NODE_ENV=production
 Environment=PORT=80
+EnvironmentFile=-/etc/better-tesla.env
 ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=3

@@ -37,6 +37,17 @@ const copy = {
     distance: "Distance",
     consumption: "Consumption",
     temperature: "Temp",
+    teslaAccount: "Tesla Account",
+    checkingAuth: "Checking authorization",
+    connectTesla: "Connect Tesla",
+    logout: "Logout",
+    connected: "Connected",
+    notConnected: "Not connected",
+    oauthMissing: "Tesla OAuth is not configured on this server.",
+    loginHint: "Sign in with Tesla OAuth to read your own vehicle list. No Tesla password is stored here.",
+    connectedHint: "Using your Tesla OAuth session. Live data should be cached and read at low frequency.",
+    vehicleCount: "Vehicles",
+    noVehicles: "No vehicles returned",
     soc: "SOC",
     range: "Range",
     odometer: "Odometer",
@@ -87,6 +98,17 @@ const copy = {
     distance: "距离",
     consumption: "能耗",
     temperature: "温度",
+    teslaAccount: "Tesla 账户",
+    checkingAuth: "检查授权中",
+    connectTesla: "连接 Tesla",
+    logout: "退出",
+    connected: "已连接",
+    notConnected: "未连接",
+    oauthMissing: "这台服务器还没有配置 Tesla OAuth。",
+    loginHint: "使用 Tesla OAuth 登录读取你自己的车辆列表。这里不会保存 Tesla 密码。",
+    connectedHint: "正在使用你的 Tesla OAuth 会话。实时数据应低频读取并缓存。",
+    vehicleCount: "车辆",
+    noVehicles: "没有返回车辆",
     soc: "电量",
     range: "续航",
     odometer: "里程",
@@ -249,10 +271,62 @@ const render = (data) => {
   `).join("");
 };
 
+const renderVehicles = (vehicles = []) => {
+  const list = $("#vehicleList");
+  if (!vehicles.length) {
+    list.innerHTML = `<p class="muted-line">${t("noVehicles")}</p>`;
+    return;
+  }
+  list.innerHTML = `
+    <p class="eyebrow">${t("vehicleCount")}</p>
+    ${vehicles.map((vehicle) => `
+      <div class="vehicle-item">
+        <strong>${vehicle.display_name || vehicle.vin || vehicle.id_s || vehicle.id}</strong>
+        <span>${vehicle.state || "--"}</span>
+      </div>
+    `).join("")}
+  `;
+};
+
+const loadTeslaAuth = async () => {
+  const response = await fetch("/api/tesla/auth/status");
+  const status = await response.json();
+  const loginButton = $("#loginButton");
+  const logoutButton = $("#logoutButton");
+  loginButton.hidden = true;
+  logoutButton.hidden = true;
+
+  if (!status.configured) {
+    $("#authTitle").textContent = t("oauthMissing");
+    $("#authMeta").textContent = "TESLA_CLIENT_ID / TESLA_CLIENT_SECRET";
+    return;
+  }
+
+  if (!status.authenticated) {
+    $("#authTitle").textContent = t("notConnected");
+    $("#authMeta").textContent = t("loginHint");
+    loginButton.hidden = false;
+    return;
+  }
+
+  $("#authTitle").textContent = t("connected");
+  $("#authMeta").textContent = t("connectedHint");
+  logoutButton.hidden = false;
+
+  try {
+    const vehicleResponse = await fetch("/api/tesla/vehicles");
+    const payload = await vehicleResponse.json();
+    renderVehicles(payload.response || []);
+  } catch (error) {
+    $("#authMeta").textContent = error.message;
+  }
+};
+
 const load = async () => {
   const response = await fetch("/api/tesla/dashboard");
   const data = await response.json();
   render(data);
+  loadTeslaAuth();
 };
 
 $$(".tab-button").forEach((button) => {
@@ -263,6 +337,14 @@ $$(".tab-button").forEach((button) => {
 });
 
 $("#refreshButton").addEventListener("click", load);
+$("#loginButton").addEventListener("click", () => {
+  window.location.href = "/api/tesla/auth/login";
+});
+$("#logoutButton").addEventListener("click", async () => {
+  await fetch("/api/tesla/auth/logout");
+  renderVehicles([]);
+  loadTeslaAuth();
+});
 
 applyLanguage();
 load();

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { createServer } from "node:http";
@@ -15,7 +15,19 @@ const adminToken = process.env.ADMIN_TOKEN || "";
 const macVncHost = process.env.MAC_VNC_HOST || "127.0.0.1";
 const macVncPort = Number(process.env.MAC_VNC_PORT || 5901);
 const forceMacVncAuth = process.env.MAC_FORCE_VNC_AUTH !== "0";
+const teslaClientId = process.env.TESLA_CLIENT_ID || "";
+const teslaClientSecret = process.env.TESLA_CLIENT_SECRET || "";
+const teslaRedirectUri = process.env.TESLA_REDIRECT_URI || "";
+const teslaAudience = process.env.TESLA_AUDIENCE || "https://fleet-api.prd.na.vn.cloud.tesla.com";
+const teslaScopes = process.env.TESLA_SCOPES || "openid offline_access vehicle_device_data";
+const sessionSecret = process.env.SESSION_SECRET || randomBytes(32).toString("hex");
 const startedAt = new Date();
+const authStates = new Map();
+const sessions = new Map();
+const regionCache = new Map();
+
+const teslaAuthUrl = "https://auth.tesla.com/oauth2/v3/authorize";
+const teslaTokenUrl = "https://fleet-auth.prd.vn.cloud.tesla.com/oauth2/v3/token";
 
 const teslaDashboard = {
   ok: true,
@@ -128,6 +140,105 @@ const json = (res, status, body) => {
   res.end(payload);
 };
 
+const parseCookies = (req) =>
+  Object.fromEntries((req.headers.cookie || "").split(";").filter(Boolean).map((part) => {
+    const [key, ...value] = part.trim().split("=");
+    return [key, decodeURIComponent(value.join("="))];
+  }));
+
+const sign = (value) => createHmac("sha256", sessionSecret).update(value).digest("base64url");
+
+const safeEqual = (left, right) => {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
+};
+
+const packSession = (sessionId) => `${sessionId}.${sign(sessionId)}`;
+
+const unpackSession = (cookie = "") => {
+  const [sessionId, signature] = cookie.split(".");
+  if (!sessionId || !signature) return "";
+  return safeEqual(sign(sessionId), signature) ? sessionId : "";
+};
+
+const setSessionCookie = (res, sessionId) => {
+  res.setHeader("set-cookie", `bt_session=${packSession(sessionId)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000`);
+};
+
+const clearSessionCookie = (res) => {
+  res.setHeader("set-cookie", "bt_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0");
+};
+
+const getSession = (req) => {
+  const sessionId = unpackSession(parseCookies(req).bt_session);
+  if (!sessionId) return null;
+  return sessions.get(sessionId) || null;
+};
+
+const getOrigin = (req) => {
+  const proto = req.headers["x-forwarded-proto"] || (req.socket.encrypted ? "https" : "http");
+  return `${proto}://${req.headers.host}`;
+};
+
+const getTeslaRedirectUri = (req) => teslaRedirectUri || `${getOrigin(req)}/api/tesla/auth/callback`;
+
+const isTeslaConfigured = () => Boolean(teslaClientId && teslaClientSecret);
+
+const requestTeslaToken = async (params) => {
+  const response = await fetch(teslaTokenUrl, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(params)
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.error_description || payload.error || `tesla_token_${response.status}`);
+  }
+  return payload;
+};
+
+const refreshTeslaToken = async (session) => {
+  const token = await requestTeslaToken({
+    grant_type: "refresh_token",
+    client_id: teslaClientId,
+    refresh_token: session.refreshToken
+  });
+  session.accessToken = token.access_token;
+  session.refreshToken = token.refresh_token || session.refreshToken;
+  session.expiresAt = Date.now() + Math.max((token.expires_in || 3600) - 60, 60) * 1000;
+  return session.accessToken;
+};
+
+const getAccessToken = async (session) => {
+  if (!session) throw new Error("not_authenticated");
+  if (Date.now() >= session.expiresAt) return refreshTeslaToken(session);
+  return session.accessToken;
+};
+
+const teslaFetch = async (session, path) => {
+  const accessToken = await getAccessToken(session);
+  const cacheKey = session.region || "default";
+  let baseUrl = regionCache.get(cacheKey) || session.baseUrl || teslaAudience;
+  let response = await fetch(new URL(path, `${baseUrl}/`), {
+    headers: { authorization: `Bearer ${accessToken}` }
+  });
+
+  if (response.status === 421) {
+    const region = await response.json().catch(() => ({}));
+    baseUrl = region.response?.fleet_api_base_url || region.fleet_api_base_url || baseUrl;
+    session.baseUrl = baseUrl;
+    regionCache.set(cacheKey, baseUrl);
+    response = await fetch(new URL(path, `${baseUrl}/`), {
+      headers: { authorization: `Bearer ${accessToken}` }
+    });
+  }
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error_description || payload.error || `tesla_api_${response.status}`);
+  return payload;
+};
+
 const isAuthed = (req) => {
   if (!adminToken) return true;
   return req.headers["x-admin-token"] === adminToken;
@@ -165,7 +276,9 @@ const directoryDigest = async (dir) => {
 };
 
 const handleApi = async (req, res) => {
-  if (req.url === "/api/health") {
+  const url = new URL(req.url || "/", "http://localhost");
+
+  if (url.pathname === "/api/health") {
     const services = await readServices();
     return json(res, 200, {
       ok: true,
@@ -179,7 +292,7 @@ const handleApi = async (req, res) => {
     });
   }
 
-  if (req.url === "/api/admin/system") {
+  if (url.pathname === "/api/admin/system") {
     if (!isAuthed(req)) return json(res, 401, { ok: false, error: "unauthorized" });
     const mem = process.memoryUsage();
     return json(res, 200, {
@@ -193,7 +306,7 @@ const handleApi = async (req, res) => {
     });
   }
 
-  if (req.url === "/api/mac/status") {
+  if (url.pathname === "/api/mac/status") {
     const status = await checkTcp(macVncHost, macVncPort);
     return json(res, status.ok ? 200 : 503, {
       ok: status.ok,
@@ -203,7 +316,86 @@ const handleApi = async (req, res) => {
     });
   }
 
-  if (req.url === "/api/tesla/dashboard") {
+  if (url.pathname === "/api/tesla/auth/status") {
+    const session = getSession(req);
+    return json(res, 200, {
+      ok: true,
+      configured: isTeslaConfigured(),
+      authenticated: Boolean(session),
+      scopes: teslaScopes.split(" "),
+      expiresAt: session?.expiresAt ? new Date(session.expiresAt).toISOString() : null
+    });
+  }
+
+  if (url.pathname === "/api/tesla/auth/login") {
+    if (!isTeslaConfigured()) {
+      return json(res, 503, {
+        ok: false,
+        error: "tesla_oauth_not_configured",
+        requiredEnv: ["TESLA_CLIENT_ID", "TESLA_CLIENT_SECRET"],
+        redirectUri: getTeslaRedirectUri(req)
+      });
+    }
+    const state = randomBytes(24).toString("base64url");
+    authStates.set(state, { createdAt: Date.now() });
+    const authorizeUrl = new URL(teslaAuthUrl);
+    authorizeUrl.searchParams.set("client_id", teslaClientId);
+    authorizeUrl.searchParams.set("locale", "en-US");
+    authorizeUrl.searchParams.set("prompt", "login");
+    authorizeUrl.searchParams.set("redirect_uri", getTeslaRedirectUri(req));
+    authorizeUrl.searchParams.set("response_type", "code");
+    authorizeUrl.searchParams.set("scope", teslaScopes);
+    authorizeUrl.searchParams.set("state", state);
+    res.writeHead(302, { location: authorizeUrl.toString(), "cache-control": "no-store" });
+    res.end();
+    return;
+  }
+
+  if (url.pathname === "/api/tesla/auth/callback") {
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+    const savedState = state ? authStates.get(state) : null;
+    if (!code || !state || !savedState || Date.now() - savedState.createdAt > 10 * 60 * 1000) {
+      return json(res, 400, { ok: false, error: "invalid_oauth_state" });
+    }
+    authStates.delete(state);
+    const token = await requestTeslaToken({
+      grant_type: "authorization_code",
+      client_id: teslaClientId,
+      client_secret: teslaClientSecret,
+      code,
+      redirect_uri: getTeslaRedirectUri(req),
+      audience: teslaAudience
+    });
+    const sessionId = randomBytes(32).toString("base64url");
+    sessions.set(sessionId, {
+      accessToken: token.access_token,
+      refreshToken: token.refresh_token,
+      expiresAt: Date.now() + Math.max((token.expires_in || 3600) - 60, 60) * 1000,
+      baseUrl: teslaAudience,
+      createdAt: Date.now()
+    });
+    setSessionCookie(res, sessionId);
+    res.writeHead(302, { location: "/data.html?tesla=connected", "cache-control": "no-store" });
+    res.end();
+    return;
+  }
+
+  if (url.pathname === "/api/tesla/auth/logout") {
+    const sessionId = unpackSession(parseCookies(req).bt_session);
+    if (sessionId) sessions.delete(sessionId);
+    clearSessionCookie(res);
+    return json(res, 200, { ok: true });
+  }
+
+  if (url.pathname === "/api/tesla/vehicles") {
+    const session = getSession(req);
+    if (!session) return json(res, 401, { ok: false, error: "not_authenticated" });
+    const payload = await teslaFetch(session, "/api/1/vehicles");
+    return json(res, 200, { ok: true, response: payload.response || [] });
+  }
+
+  if (url.pathname === "/api/tesla/dashboard") {
     return json(res, 200, {
       ...teslaDashboard,
       updatedAt: new Date().toISOString()
