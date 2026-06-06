@@ -351,7 +351,7 @@ const handleApi = async (req, res) => {
     return;
   }
 
-  if (url.pathname === "/api/tesla/auth/callback") {
+  if (url.pathname === "/api/tesla/auth/callback" || url.pathname === "/api/auth/callback") {
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
     const savedState = state ? authStates.get(state) : null;
