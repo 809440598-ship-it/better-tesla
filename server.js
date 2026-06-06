@@ -179,6 +179,41 @@ const json = (res, status, body) => {
   res.end(payload);
 };
 
+const html = (res, status, body) => {
+  res.writeHead(status, {
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "no-store",
+    "content-length": Buffer.byteLength(body)
+  });
+  res.end(body);
+};
+
+const authErrorPage = (message) => `<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tesla OAuth Error</title>
+    <style>
+      body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #eef3f7; color: #111827; }
+      main { display: grid; min-height: 100vh; place-items: center; padding: 24px; }
+      section { width: min(560px, 100%); padding: 28px; border: 1px solid rgba(30,41,59,.12); border-radius: 8px; background: white; box-shadow: 0 18px 46px rgba(15,23,42,.08); }
+      h1 { margin: 0 0 12px; font-size: 28px; }
+      p { color: #64748b; font-weight: 700; line-height: 1.6; }
+      a { display: inline-flex; align-items: center; min-height: 46px; margin-top: 14px; padding: 0 18px; border-radius: 8px; background: #2563eb; color: white; text-decoration: none; font-weight: 900; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <h1>Tesla 授权需要重新开始</h1>
+        <p>${message}</p>
+        <a href="/api/tesla/auth/login">重新连接 Tesla</a>
+      </section>
+    </main>
+  </body>
+</html>`;
+
 const parseCookies = (req) =>
   Object.fromEntries((req.headers.cookie || "").split(";").filter(Boolean).map((part) => {
     const [key, ...value] = part.trim().split("=");
@@ -202,12 +237,27 @@ const unpackSession = (cookie = "") => {
 };
 
 const setSessionCookie = (res, sessionId) => {
-  res.setHeader("set-cookie", `bt_session=${packSession(sessionId)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000`);
+  res.setHeader("set-cookie", `bt_session=${packSession(sessionId)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=2592000`);
 };
 
 const clearSessionCookie = (res) => {
-  res.setHeader("set-cookie", "bt_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0");
+  res.setHeader("set-cookie", "bt_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0");
 };
+
+const setOAuthStateCookie = (res, state) => {
+  const value = packSession(state);
+  const next = `bt_oauth_state=${value}; HttpOnly; Secure; SameSite=Lax; Path=/api; Max-Age=600`;
+  const current = res.getHeader("set-cookie");
+  res.setHeader("set-cookie", current ? [current, next].flat() : next);
+};
+
+const clearOAuthStateCookie = (res) => {
+  const next = "bt_oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/api; Max-Age=0";
+  const current = res.getHeader("set-cookie");
+  res.setHeader("set-cookie", current ? [current, next].flat() : next);
+};
+
+const getOAuthState = (req) => unpackSession(parseCookies(req).bt_oauth_state);
 
 const getSession = (req) => {
   const sessionId = unpackSession(parseCookies(req).bt_session);
@@ -422,6 +472,7 @@ const handleApi = async (req, res) => {
     }
     const state = randomBytes(24).toString("base64url");
     authStates.set(state, { createdAt: Date.now() });
+    setOAuthStateCookie(res, state);
     const authorizeUrl = new URL(teslaAuthUrl);
     authorizeUrl.searchParams.set("client_id", teslaClientId);
     authorizeUrl.searchParams.set("locale", "en-US");
@@ -440,10 +491,14 @@ const handleApi = async (req, res) => {
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
     const savedState = state ? authStates.get(state) : null;
-    if (!code || !state || !savedState || Date.now() - savedState.createdAt > 10 * 60 * 1000) {
-      return json(res, 400, { ok: false, error: "invalid_oauth_state" });
+    const cookieState = getOAuthState(req);
+    const validMemoryState = savedState && Date.now() - savedState.createdAt <= 10 * 60 * 1000;
+    const validCookieState = cookieState && state && safeEqual(cookieState, state);
+    if (!code || !state || (!validMemoryState && !validCookieState)) {
+      return html(res, 400, authErrorPage("授权状态已过期或服务器刚重启。请从 Better Tesla 重新点击连接。"));
     }
     authStates.delete(state);
+    clearOAuthStateCookie(res);
     const token = await requestTeslaToken({
       grant_type: "authorization_code",
       client_id: teslaClientId,
