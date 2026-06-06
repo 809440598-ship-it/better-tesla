@@ -135,6 +135,14 @@ TESLA_SCOPES=openid offline_access vehicle_device_data
 SESSION_SECRET=replace-with-long-random-string
 ```
 
+如果你的 Tesla Developer App 是中国区凭据，还需要：
+
+```bash
+TESLA_AUTH_URL=https://auth.tesla.cn/oauth2/v3/authorize
+TESLA_TOKEN_URL=https://auth.tesla.cn/oauth2/v3/token
+TESLA_AUDIENCE=https://fleet-api.prd.cn.vn.cloud.tesla.cn
+```
+
 OAuth 登录只跳转 Tesla 官方授权页，不收集用户 Tesla 密码。当前车辆列表接口只读，不做车辆唤醒和控制。
 
 ## Tesla Data Dashboard

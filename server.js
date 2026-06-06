@@ -20,14 +20,13 @@ const teslaClientSecret = process.env.TESLA_CLIENT_SECRET || "";
 const teslaRedirectUri = process.env.TESLA_REDIRECT_URI || "";
 const teslaAudience = process.env.TESLA_AUDIENCE || "https://fleet-api.prd.na.vn.cloud.tesla.com";
 const teslaScopes = process.env.TESLA_SCOPES || "openid offline_access vehicle_device_data";
+const teslaAuthUrl = process.env.TESLA_AUTH_URL || "https://auth.tesla.com/oauth2/v3/authorize";
+const teslaTokenUrl = process.env.TESLA_TOKEN_URL || "https://fleet-auth.prd.vn.cloud.tesla.com/oauth2/v3/token";
 const sessionSecret = process.env.SESSION_SECRET || randomBytes(32).toString("hex");
 const startedAt = new Date();
 const authStates = new Map();
 const sessions = new Map();
 const regionCache = new Map();
-
-const teslaAuthUrl = "https://auth.tesla.com/oauth2/v3/authorize";
-const teslaTokenUrl = "https://fleet-auth.prd.vn.cloud.tesla.com/oauth2/v3/token";
 
 const teslaDashboard = {
   ok: true,
