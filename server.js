@@ -499,14 +499,20 @@ const handleApi = async (req, res) => {
     }
     authStates.delete(state);
     clearOAuthStateCookie(res);
-    const token = await requestTeslaToken({
-      grant_type: "authorization_code",
-      client_id: teslaClientId,
-      client_secret: teslaClientSecret,
-      code,
-      redirect_uri: getTeslaRedirectUri(req),
-      audience: teslaAudience
-    });
+    let token;
+    try {
+      token = await requestTeslaToken({
+        grant_type: "authorization_code",
+        client_id: teslaClientId,
+        client_secret: teslaClientSecret,
+        code,
+        redirect_uri: getTeslaRedirectUri(req),
+        audience: teslaAudience
+      });
+    } catch (error) {
+      clearOAuthStateCookie(res);
+      return html(res, 400, authErrorPage(`Tesla 授权码已过期或已被使用。请重新连接 Tesla。${error.message ? ` (${error.message})` : ""}`));
+    }
     const sessionId = randomBytes(32).toString("base64url");
     sessions.set(sessionId, {
       accessToken: token.access_token,
