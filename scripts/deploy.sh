@@ -4,6 +4,7 @@ set -euo pipefail
 HOST="${HOST:-root@example.com}"
 APP_DIR="${APP_DIR:-/opt/better-tesla}"
 SERVICE="${SERVICE:-better-tesla}"
+APP_PORT="${APP_PORT:-3000}"
 
 ssh "$HOST" "mkdir -p '$APP_DIR'"
 rsync -az --delete \
@@ -21,7 +22,7 @@ After=network.target
 Type=simple
 WorkingDirectory=$APP_DIR
 Environment=NODE_ENV=production
-Environment=PORT=80
+Environment=PORT=$APP_PORT
 EnvironmentFile=-/etc/better-tesla.env
 ExecStart=/usr/bin/node server.js
 Restart=always
