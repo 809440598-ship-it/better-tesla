@@ -39,7 +39,10 @@ const copy = {
     vehicle: "Vehicle",
     soc: "SOC",
     range: "Range",
+    batteryLevel: "Battery level",
+    estimatedRange: "Estimated range · km",
     odometer: "Odometer",
+    totalDistance: "Total distance · km",
     dataSource: "Data Source",
     quickAccess: "Quick Access",
     connected: "Connected",
@@ -77,7 +80,10 @@ const copy = {
     vehicle: "车辆",
     soc: "电量",
     range: "续航",
+    batteryLevel: "当前电池电量",
+    estimatedRange: "预计可行驶 · km",
     odometer: "里程",
+    totalDistance: "累计行驶 · km",
     dataSource: "数据源",
     quickAccess: "快速入口",
     connected: "已连接",
@@ -170,7 +176,7 @@ const renderEmptyTesla = (authenticated = false) => {
   $("#vehicleName").textContent = "--";
   $("#vehicleState").textContent = "--";
   $("#socValue").textContent = "--";
-  $("#rangeValue").textContent = t("unavailable");
+  $("#rangeValue").textContent = "--";
   $("#odometerValue").textContent = "--";
   $("#locationValue").textContent = t("unavailable");
   $("#sourceValue").textContent = "--";
@@ -184,8 +190,8 @@ const renderTesla = (data) => {
   $("#vehicleName").textContent = vehicle.name || "--";
   $("#vehicleState").textContent = vehicle.state || "--";
   $("#socValue").textContent = percent(vehicle.soc);
-  $("#rangeValue").textContent = `${t("range")} ${metric(vehicle.rangeKm, "km")}`;
-  $("#odometerValue").textContent = metric(vehicle.odometerKm, "km");
+  $("#rangeValue").textContent = hasNumber(vehicle.rangeKm) ? number(vehicle.rangeKm) : "--";
+  $("#odometerValue").textContent = hasNumber(vehicle.odometerKm) ? number(vehicle.odometerKm) : "--";
   $("#locationValue").textContent = vehicle.location || "--";
   $("#sourceValue").textContent = data.source === "fleet_api" ? t("fleetApi") : t("fixture");
   $("#updatedAt").textContent = new Date(data.updatedAt).toLocaleTimeString(locale(), {

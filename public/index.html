@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#eef3f7" />
     <title>Better Tesla</title>
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="stylesheet" href="/styles.css?v=clean-1" />
+    <link rel="stylesheet" href="/styles.css?v=clean-2" />
   </head>
   <body>
     <main class="shell">
@@ -45,6 +45,7 @@
             <div>
               <p class="eyebrow" data-i18n="vehicle">Vehicle</p>
               <h2 id="vehicleName">--</h2>
+              <p class="vehicle-location" id="locationValue">--</p>
             </div>
             <span class="status-pill" id="vehicleState">--</span>
           </div>
@@ -53,12 +54,17 @@
             <article>
               <span data-i18n="soc">SOC</span>
               <strong id="socValue">--</strong>
-              <small id="rangeValue">--</small>
+              <small data-i18n="batteryLevel">Battery level</small>
+            </article>
+            <article>
+              <span data-i18n="range">Range</span>
+              <strong id="rangeValue">--</strong>
+              <small data-i18n="estimatedRange">Estimated range</small>
             </article>
             <article>
               <span data-i18n="odometer">Odometer</span>
               <strong id="odometerValue">--</strong>
-              <small id="locationValue">--</small>
+              <small data-i18n="totalDistance">Total distance</small>
             </article>
             <article>
               <span data-i18n="dataSource">Data Source</span>
@@ -118,6 +124,6 @@
       </form>
     </dialog>
 
-    <script src="/app.js" type="module"></script>
+    <script src="/app.js?v=clean-2" type="module"></script>
   </body>
 </html>
